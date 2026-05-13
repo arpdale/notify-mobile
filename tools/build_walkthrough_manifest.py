@@ -63,6 +63,35 @@ def parse_scene_log(path: Path) -> list[float]:
     return [float(m.group(1)) for line in path.read_text().splitlines() if (m := rx.search(line))]
 
 
+def frame_index(path: Path) -> int:
+    """Return the 1-indexed frame number embedded in the filename (e.g. 11)."""
+    return int(path.stem)
+
+
+def dhash_bits(img_path: Path, size: int = 8) -> int:
+    """Compute a 64-bit difference hash of the image.
+
+    dHash is invariant to small color shifts and minor scaling; near-identical
+    frames hash within a few bits of each other. Two frames are considered
+    duplicates when their bitwise XOR popcount (Hamming distance) is small.
+    """
+    with Image.open(img_path) as im:
+        small = im.convert("L").resize((size + 1, size), Image.LANCZOS)
+    pixels = list(small.getdata())
+    bits = 0
+    for y in range(size):
+        row_offset = y * (size + 1)
+        for x in range(size):
+            left = pixels[row_offset + x]
+            right = pixels[row_offset + x + 1]
+            bits = (bits << 1) | (1 if left > right else 0)
+    return bits
+
+
+def hamming(a: int, b: int) -> int:
+    return (a ^ b).bit_count()
+
+
 def parse_vtt(path: Path) -> list[tuple[float, float, str, str | None]]:
     """Return list of (start_s, end_s, text, speaker)."""
 
@@ -178,6 +207,22 @@ def main() -> int:
         action="store_true",
         help="Skip ffmpeg extraction (use existing frames/ and scene_log.txt)",
     )
+    ap.add_argument(
+        "--dedupe",
+        type=int,
+        default=None,
+        metavar="HAMMING",
+        help=(
+            "Drop near-duplicate frames using a 64-bit dHash. Frames are "
+            "skipped when their hash is within HAMMING bits of any of the "
+            "5 most recently kept frames. Try 8-12 for animation transitions."
+        ),
+    )
+    ap.add_argument(
+        "--delete-dropped",
+        action="store_true",
+        help="Delete from disk any frames removed by --dedupe or --frames",
+    )
     args = ap.parse_args()
 
     out = args.out.expanduser().resolve()
@@ -250,11 +295,48 @@ def main() -> int:
     (out / "crop_suggestion.json").write_text(json.dumps(crop_info, indent=2))
 
     frame_paths = sorted(frames_dir.glob("*.png"))
-    if len(times) != len(frame_paths):
+    # Resolve each frame's timestamp by its filename number, not by zip position
+    # — files may have been pruned but scene_log.txt is the original record.
+    frame_records: list[tuple[Path, float, int]] = []
+    for p in frame_paths:
+        idx = frame_index(p)
+        if idx < 1 or idx > len(times):
+            print(f"frame {p.name} has no matching scene_log entry; skipping",
+                  file=sys.stderr)
+            continue
+        frame_records.append((p, times[idx - 1], idx))
+
+    # Filter by explicit --frames selection (1-indexed against original extraction).
+    if args.frames is not None:
+        frame_records = [r for r in frame_records if r[2] in args.frames]
+
+    # Perceptual-hash dedupe — drop frames that are near-identical to any of
+    # the last 5 we kept. Tunes out mid-animation transitions (menu slide-up,
+    # cell highlights, cursor moves).
+    dropped_by_dedupe: list[Path] = []
+    if args.dedupe is not None and frame_records:
+        kept: list[tuple[Path, float, int]] = []
+        kept_hashes: list[int] = []
+        for rec in frame_records:
+            h = dhash_bits(rec[0])
+            if any(hamming(h, kh) <= args.dedupe for kh in kept_hashes[-5:]):
+                dropped_by_dedupe.append(rec[0])
+                continue
+            kept.append(rec)
+            kept_hashes.append(h)
         print(
-            f"warning: {len(times)} scene_log entries vs {len(frame_paths)} frame files",
+            f"dedupe (≤{args.dedupe} bits): kept {len(kept)} of "
+            f"{len(frame_records)} frames",
             file=sys.stderr,
         )
+        frame_records = kept
+
+    if args.delete_dropped:
+        kept_files = {r[0] for r in frame_records}
+        for p in frame_paths:
+            if p not in kept_files:
+                p.unlink()
+                print(f"deleted {p.name}", file=sys.stderr)
 
     lines: list[str] = []
     lines.append("# Walkthrough frame catalogue\n")
@@ -286,13 +368,16 @@ def main() -> int:
         ranges.append(f"{run_lo}-{run_hi}" if run_lo != run_hi else f"{run_lo}")
         lines.append(
             f"**Curated subset:** {', '.join(ranges)} "
-            f"({len(args.frames)} of {len(frame_paths)} frames)\n"
+            f"({len(frame_records)} kept after filters)\n"
+        )
+    if args.dedupe is not None:
+        lines.append(
+            f"**Deduped:** dHash ≤ {args.dedupe} bits "
+            f"({len(dropped_by_dedupe)} near-duplicates dropped)\n"
         )
     lines.append("---\n")
 
-    for idx, (frame_path, t) in enumerate(zip(frame_paths, times), start=1):
-        if args.frames is not None and idx not in args.frames:
-            continue
+    for frame_path, t, idx in frame_records:
         neighbors = neighbors_for(t, cues, args.pre, args.post)
         speakers = sorted({c[3] for c in neighbors if c[3]})
         speaker_str = ", ".join(speakers) if speakers else "—"
