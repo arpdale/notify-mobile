@@ -34,13 +34,13 @@ export function MenuOverlay({
     { label: 'Settings' },
     { label: 'Forecast' },
     { label: 'Digital Channels' },
-    { label: 'Check Search', onClick: onCheckSearch },
+    { label: 'Checks Search', onClick: onCheckSearch },
   ]
 
   const support: MenuItem[] = [{ label: 'Analyze' }, { label: 'Product Tour' }]
 
   return (
-    <BottomSheet open={open} onDismiss={onDismiss} heightPercent={82}>
+    <BottomSheet open={open} onDismiss={onDismiss} heightPercent={68}>
       <div
         style={{
           display: 'flex',
