@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { Button, InputField } from '@david-richard/notify-ds'
 import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
 import { ChevronLeftIcon } from '../icons'
+import { CodeInput } from '../components/CodeInput'
 import { Toast } from '../components/Toast'
+
+const CODE_LENGTH = 6
 
 type Props = {
   onBack: () => void
@@ -24,7 +27,7 @@ export function ChooseNewPassword({
   const [confirm, setConfirm] = useState('')
 
   const canSubmit =
-    code.trim().length > 0 &&
+    code.length === CODE_LENGTH &&
     next.length > 0 &&
     confirm.length > 0 &&
     next === confirm
@@ -87,16 +90,27 @@ export function ChooseNewPassword({
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <InputField
-          label="Code"
-          required
-          type="default"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
-        />
+        <div>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: 8,
+              fontFamily: "'Red Hat Text', 'Inter', sans-serif",
+              fontSize: 18,
+              fontWeight: 500,
+              color: '#000',
+            }}
+          >
+            Code<span style={{ color: '#EF2149' }}>*</span>
+          </label>
+          <CodeInput
+            value={code}
+            onChange={setCode}
+            length={CODE_LENGTH}
+            error={Boolean(errorMessage)}
+            ariaLabel="Verification code digit"
+          />
+        </div>
         <InputField
           label="New Password"
           required
