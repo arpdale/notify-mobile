@@ -1,3 +1,4 @@
+import { AppBottomNav } from '../components/AppBottomNav'
 import { ScreenHeader } from '../components/ScreenHeader'
 import {
   ClockIcon,
@@ -50,14 +51,16 @@ const DEMO_CHECKS: Check[] = [
 ]
 
 type Props = {
-  onBack: () => void
+  onDashboard: () => void
+  onInventory: () => void
+  onMenu: () => void
   onFilters?: () => void
 }
 
-export function CheckSearch({ onBack, onFilters }: Props) {
+export function CheckSearch({ onDashboard, onInventory, onMenu, onFilters }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <ScreenHeader title="Check Search" onBack={onBack} />
+      <ScreenHeader title="Checks Search" />
 
       <div
         style={{
@@ -65,7 +68,7 @@ export function CheckSearch({ onBack, onFilters }: Props) {
           minHeight: 0,
           overflowY: 'auto',
           background: 'var(--color-surface-app, #F4F4F4)',
-          padding: '12px 16px 24px',
+          padding: '12px 16px 140px',
         }}
       >
         <SectionHeader title="Totals" action={
@@ -125,6 +128,15 @@ export function CheckSearch({ onBack, onFilters }: Props) {
           ))}
         </div>
       </div>
+
+      <AppBottomNav
+        value={'__none__' as never}
+        onNavigate={(v) => {
+          if (v === 'dashboard') onDashboard()
+          else if (v === 'inventory') onInventory()
+          else if (v === 'menu') onMenu()
+        }}
+      />
     </div>
   )
 }
