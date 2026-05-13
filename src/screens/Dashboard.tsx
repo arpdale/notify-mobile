@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, TabBar } from '@david-richard/notify-ds'
 import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
 import { BellIcon, InfoCircleIcon } from '../icons'
@@ -58,6 +58,15 @@ export function Dashboard({
   onNotifications,
 }: Props = {}) {
   const [tab, setTab] = useState<string>(initialTab)
+  // Initial-mount loading skeleton. Real auth + API integration replaces
+  // this timer with a query state in a later tier; the skeleton ships now
+  // so the perceived load matches what users will see in production.
+  const [loading, setLoading] = useState(state === 'ready')
+  useEffect(() => {
+    if (state !== 'ready') return
+    const t = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(t)
+  }, [state])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -130,7 +139,7 @@ export function Dashboard({
         )}
 
         {state === 'ready' && tab === 'Sales' && (
-          <SalesView onTileClick={onTileClick} />
+          <SalesView loading={loading} onTileClick={onTileClick} />
         )}
 
         {state === 'ready' && tab === 'Store' && (
