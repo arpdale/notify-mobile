@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PhoneFrame } from './PhoneFrame'
 import { SignIn } from './screens/SignIn'
-import { Dashboard } from './screens/Dashboard'
+import { Dashboard, type DashboardTile } from './screens/Dashboard'
 import { ResetPassword } from './screens/ResetPassword'
 import { TwoStepVerification } from './screens/TwoStepVerification'
 import { ChooseNewPassword } from './screens/ChooseNewPassword'
@@ -10,6 +10,11 @@ import { CheckSearch } from './screens/CheckSearch'
 import { MenuOverlay } from './screens/MenuOverlay'
 import { EnableFaceId } from './screens/EnableFaceId'
 import { ThanksgivingFeast } from './screens/ThanksgivingFeast'
+import { NetSales } from './screens/NetSales'
+import { Payments } from './screens/Payments'
+import { Discounts } from './screens/Discounts'
+import { Taxes } from './screens/Taxes'
+import { ServiceCharges } from './screens/ServiceCharges'
 
 type Route =
   | 'sign-in'
@@ -21,6 +26,19 @@ type Route =
   | 'tills'
   | 'check-search'
   | 'thanksgiving-feast'
+  | 'net-sales'
+  | 'payments'
+  | 'discounts'
+  | 'taxes'
+  | 'service-charges'
+
+const TILE_ROUTES: Partial<Record<DashboardTile, Route>> = {
+  'Net Sales': 'net-sales',
+  Payments: 'payments',
+  Discounts: 'discounts',
+  'Service Charges': 'service-charges',
+  Tills: 'tills',
+}
 
 function App() {
   const [route, setRoute] = useState<Route>('sign-in')
@@ -28,6 +46,10 @@ function App() {
   const goto = (r: Route) => {
     setMenuOpen(false)
     setRoute(r)
+  }
+  const onTileClick = (tile: DashboardTile) => {
+    const target = TILE_ROUTES[tile]
+    if (target) goto(target)
   }
 
   return (
@@ -69,7 +91,7 @@ function App() {
 
       {route === 'dashboard' && (
         <>
-          <Dashboard onMenu={() => setMenuOpen(true)} />
+          <Dashboard onMenu={() => setMenuOpen(true)} onTileClick={onTileClick} />
           <MenuOverlay
             open={menuOpen}
             onDismiss={() => setMenuOpen(false)}
@@ -85,6 +107,13 @@ function App() {
       {route === 'check-search' && <CheckSearch onBack={() => goto('dashboard')} />}
       {route === 'thanksgiving-feast' && (
         <ThanksgivingFeast onBack={() => goto('dashboard')} />
+      )}
+      {route === 'net-sales' && <NetSales onBack={() => goto('dashboard')} />}
+      {route === 'payments' && <Payments onBack={() => goto('dashboard')} />}
+      {route === 'discounts' && <Discounts onBack={() => goto('dashboard')} />}
+      {route === 'taxes' && <Taxes onBack={() => goto('dashboard')} />}
+      {route === 'service-charges' && (
+        <ServiceCharges onBack={() => goto('dashboard')} />
       )}
     </PhoneFrame>
   )
