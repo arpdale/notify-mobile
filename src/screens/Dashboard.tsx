@@ -19,12 +19,15 @@ import {
   StoreIcon,
 } from '../icons'
 import { EmptyState } from '../components/EmptyState'
+import { Toast } from '../components/Toast'
 
 export type DashboardState = 'ready' | 'error'
 
 type Props = {
   state?: DashboardState
   onRefresh?: () => void
+  /** When set, renders the error toast pinned above the bottom nav */
+  errorMessage?: string
 }
 
 const TABS = ['Sales', 'Labor', 'Store', 'Product']
@@ -87,7 +90,11 @@ function TillsTile() {
   )
 }
 
-export function Dashboard({ state = 'ready', onRefresh }: Props = {}) {
+export function Dashboard({
+  state = 'ready',
+  onRefresh,
+  errorMessage,
+}: Props = {}) {
   const [tab, setTab] = useState('Sales')
   const [nav, setNav] = useState('dashboard')
 
@@ -248,9 +255,13 @@ export function Dashboard({ state = 'ready', onRefresh }: Props = {}) {
         )}
       </div>
 
-      <BottomNavContainer>
-        <BottomNav items={NAV_ITEMS} value={nav} onValueChange={setNav} />
-      </BottomNavContainer>
+      {errorMessage ? (
+        <Toast message={errorMessage} variant="error" position="attached" />
+      ) : (
+        <BottomNavContainer>
+          <BottomNav items={NAV_ITEMS} value={nav} onValueChange={setNav} />
+        </BottomNavContainer>
+      )}
     </div>
   )
 }
