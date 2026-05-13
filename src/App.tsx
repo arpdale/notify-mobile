@@ -13,6 +13,7 @@ import { ThanksgivingFeast } from './screens/ThanksgivingFeast'
 import { Splash } from './screens/Splash'
 import { NewVersionAvailable } from './screens/NewVersionAvailable'
 import { NetworkError } from './screens/NetworkError'
+import { Notifications } from './screens/Notifications'
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
 // own chunk, off the auth + dashboard critical path.
@@ -99,6 +100,7 @@ const SPLASH_VERSION_PROMPT_DELAY_MS = 1200
 function App() {
   const [route, setRoute] = useState<Route>('splash')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [versionPromptOpen, setVersionPromptOpen] = useState(false)
   const [chooseNewPasswordError, setChooseNewPasswordError] = useState<
     string | undefined
@@ -115,6 +117,7 @@ function App() {
 
   const goto = (r: Route) => {
     setMenuOpen(false)
+    setNotificationsOpen(false)
     setVersionPromptOpen(false)
     setRoute(r)
   }
@@ -197,12 +200,20 @@ function App() {
 
       {route === 'dashboard' && (
         <>
-          <Dashboard onMenu={() => setMenuOpen(true)} onTileClick={onTileClick} />
+          <Dashboard
+            onMenu={() => setMenuOpen(true)}
+            onTileClick={onTileClick}
+            onNotifications={() => setNotificationsOpen(true)}
+          />
           <MenuOverlay
             open={menuOpen}
             onDismiss={() => setMenuOpen(false)}
             onCheckSearch={() => goto('check-search')}
             onLogOut={() => goto('sign-in')}
+          />
+          <Notifications
+            open={notificationsOpen}
+            onDismiss={() => setNotificationsOpen(false)}
           />
         </>
       )}
