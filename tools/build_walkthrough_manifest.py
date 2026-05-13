@@ -96,18 +96,34 @@ def neighbors_for(t: float, cues, pre_s: float, post_s: float):
     return [c for c in cues if c[1] >= lo and c[0] <= hi]
 
 
-def extract_frames(video: Path, scene: float, frames_dir: Path) -> Path:
-    """Run ffmpeg scene-detect; return path to scene_log.txt."""
+def extract_frames(
+    video: Path,
+    scene: float,
+    frames_dir: Path,
+    crop: tuple[int, int, int, int] | None,
+) -> Path:
+    """Run ffmpeg with (optional) crop then scene-detect.
+
+    Cropping happens inside the same filter chain as scene-detection so
+    layout shifts in the source recording (Zoom gallery view, webcam
+    relocations) don't trigger scene cuts — only changes inside the
+    cropped region count.
+    """
     frames_dir.mkdir(parents=True, exist_ok=True)
     for existing in frames_dir.glob("*.png"):
         existing.unlink()
     scene_log = frames_dir.parent / "scene_log.txt"
+    if crop:
+        x, y, w, h = crop
+        vf = f"crop={w}:{h}:{x}:{y},select='gt(scene,{scene})',showinfo"
+    else:
+        vf = f"select='gt(scene,{scene})',showinfo"
     with open(scene_log, "w") as log:
         proc = subprocess.run(
             [
                 "ffmpeg", "-hide_banner", "-nostats",
                 "-i", str(video),
-                "-vf", f"select='gt(scene,{scene})',showinfo",
+                "-vf", vf,
                 "-fps_mode", "vfr",
                 "-q:v", "2",
                 str(frames_dir / "%04d.png"),
@@ -118,20 +134,6 @@ def extract_frames(video: Path, scene: float, frames_dir: Path) -> Path:
         print(f"ffmpeg exited {proc.returncode}; see {scene_log}", file=sys.stderr)
         sys.exit(proc.returncode)
     return scene_log
-
-
-def bulk_crop(frames_dir: Path, cropped_dir: Path, crop: tuple[int, int, int, int]) -> None:
-    cropped_dir.mkdir(parents=True, exist_ok=True)
-    for existing in cropped_dir.glob("*.png"):
-        existing.unlink()
-    x, y, w, h = crop
-    flt = f"crop={w}:{h}:{x}:{y}"
-    for src in sorted(frames_dir.glob("*.png")):
-        subprocess.run(
-            ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-             "-i", str(src), "-vf", flt, str(cropped_dir / src.name)],
-            check=True,
-        )
 
 
 def parse_crop(value: str) -> tuple[int, int, int, int]:
@@ -181,7 +183,44 @@ def main() -> int:
     out = args.out.expanduser().resolve()
     out.mkdir(parents=True, exist_ok=True)
     frames_dir = out / "frames"
-    cropped_dir = out / "frames-cropped"
+
+    # Resolve crop coords first — they're applied during extraction (chained
+    # into the ffmpeg filter graph with scene-detect), so scene detection
+    # only sees pixel changes inside the cropped region.
+    crop: tuple[int, int, int, int] | None = None
+    crop_info: dict = {}
+    target_meta: dict = {}
+    if args.crop:
+        crop = args.crop
+    elif args.target:
+        bounds = detect_magenta_bounds(args.target.expanduser())
+        if bounds:
+            x0, y0, x1, y1, tw, th = bounds
+            # We need video dimensions to scale the magenta bounds. Probe by
+            # running ffprobe on the source video.
+            probe = subprocess.run(
+                ["ffprobe", "-v", "error", "-select_streams", "v:0",
+                 "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x",
+                 str(args.video.expanduser())],
+                capture_output=True, text=True, check=True,
+            )
+            vw, vh = (int(p) for p in probe.stdout.strip().split("x"))
+            sx, sy = vw / tw, vh / th
+            vx0, vy0 = round(x0 * sx), round(y0 * sy)
+            vx1, vy1 = round(x1 * sx), round(y1 * sy)
+            pad = 12
+            cx0 = max(0, vx0 - pad)
+            cy0 = max(0, vy0 - pad)
+            cx1 = min(vw, vx1 + pad)
+            cy1 = min(vh, vy1 + pad)
+            crop = (cx0, cy0, cx1 - cx0, cy1 - cy0)
+            target_meta = {
+                "target_image_size": [tw, th],
+                "magenta_bounds_target_space": [x0, y0, x1, y1],
+                "magenta_bounds_video_space": [vx0, vy0, vx1, vy1],
+            }
+        else:
+            print(f"no magenta found in {args.target}", file=sys.stderr)
 
     if args.skip_extract:
         scene_log = out / "scene_log.txt"
@@ -189,48 +228,21 @@ def main() -> int:
             print(f"missing {scene_log}; cannot skip extraction", file=sys.stderr)
             return 1
     else:
-        scene_log = extract_frames(args.video.expanduser(), args.scene, frames_dir)
+        scene_log = extract_frames(args.video.expanduser(), args.scene, frames_dir, crop)
     times = parse_scene_log(scene_log)
     cues = parse_vtt(args.vtt.expanduser())
 
-    # Probe video size from the first extracted frame.
+    # Probe size of an extracted frame. With a crop chain it equals the crop.
     sample = next(frames_dir.glob("*.png"), None)
     if sample is None:
         print("no frames extracted", file=sys.stderr)
         return 1
     with Image.open(sample) as im:
-        video_w, video_h = im.size
+        frame_w, frame_h = im.size
 
-    crop_info: dict = {"video_frame_size": [video_w, video_h]}
-
-    if args.crop:
-        crop = args.crop
-    elif args.target:
-        bounds = detect_magenta_bounds(args.target.expanduser())
-        if bounds:
-            x0, y0, x1, y1, tw, th = bounds
-            sx, sy = video_w / tw, video_h / th
-            vx0, vy0 = round(x0 * sx), round(y0 * sy)
-            vx1, vy1 = round(x1 * sx), round(y1 * sy)
-            pad = 12
-            cx0 = max(0, vx0 - pad)
-            cy0 = max(0, vy0 - pad)
-            cx1 = min(video_w, vx1 + pad)
-            cy1 = min(video_h, vy1 + pad)
-            crop = (cx0, cy0, cx1 - cx0, cy1 - cy0)
-            crop_info.update({
-                "target_image_size": [tw, th],
-                "magenta_bounds_target_space": [x0, y0, x1, y1],
-                "magenta_bounds_video_space": [vx0, vy0, vx1, vy1],
-            })
-        else:
-            print(f"no magenta found in {args.target}", file=sys.stderr)
-            crop = None
-    else:
-        crop = None
-
+    crop_info["frame_size"] = [frame_w, frame_h]
+    crop_info.update(target_meta)
     if crop:
-        bulk_crop(frames_dir, cropped_dir, crop)
         x, y, w, h = crop
         crop_info["applied_crop"] = [x, y, w, h]
         crop_info["ffmpeg_filter"] = f"crop={w}:{h}:{x}:{y}"
@@ -250,13 +262,16 @@ def main() -> int:
     if crop:
         x, y, w, h = crop
         lines.append(
-            f"**Video frame size:** {video_w}×{video_h}  \n"
             f"**Applied crop:** offset ({x}, {y}), size {w}×{h}  \n"
-            f"**ffmpeg filter:** `{crop_info['ffmpeg_filter']}`\n"
+            f"**ffmpeg filter:** `{crop_info['ffmpeg_filter']}`  \n"
+            f"**Output frame size:** {frame_w}×{frame_h} _(cropped before scene-detect)_\n"
         )
+    else:
+        lines.append(f"**Output frame size:** {frame_w}×{frame_h}\n")
     lines.append(
         f"Scene-detect threshold: `{args.scene}`. "
-        "Each entry shows the cropped phone view; the matching full frame is linked below it.\n"
+        "Crop is applied before scene-detect so layout shifts outside the "
+        "phone region don't trigger frames.\n"
     )
     if args.frames:
         sorted_sel = sorted(args.frames)
@@ -291,15 +306,8 @@ def main() -> int:
                 snippet_parts.append(f"- `{stamp}` {body}")
         snippet = "\n".join(snippet_parts) if snippet_parts else "_(no transcript in window)_"
 
-        cropped_path = cropped_dir / frame_path.name
         lines.append(f"## {frame_path.name} · `{fmt_mmss(t)}`\n")
-        if cropped_path.exists():
-            lines.append(f"![{frame_path.name}](frames-cropped/{frame_path.name})\n")
-            lines.append(
-                f"_Full frame: [`frames/{frame_path.name}`](frames/{frame_path.name})_\n"
-            )
-        else:
-            lines.append(f"![{frame_path.name}](frames/{frame_path.name})\n")
+        lines.append(f"![{frame_path.name}](frames/{frame_path.name})\n")
         lines.append(f"**Speakers in window:** {speaker_str}\n")
         lines.append(snippet)
         lines.append("\n---\n")
