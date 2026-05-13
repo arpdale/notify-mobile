@@ -5,19 +5,17 @@ import {
   Button,
   MetricTile,
   MetricTileGrid,
-  Selector,
   TabBar,
 } from '@david-richard/notify-ds'
 import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
 import {
   BellIcon,
   BoxIcon,
-  CalendarIcon,
   DashboardIcon,
   InfoCircleIcon,
   MenuIcon,
-  StoreIcon,
 } from '../icons'
+import { ContextBar } from '../components/ContextBar'
 import { EmptyState } from '../components/EmptyState'
 import { Toast } from '../components/Toast'
 
@@ -139,32 +137,7 @@ export function Dashboard({
         </button>
       </header>
 
-      <div
-        style={{
-          height: 56,
-          padding: '0 16px',
-          background: '#FFFFFF',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-          flexShrink: 0,
-        }}
-      >
-        <Selector
-          label="StoreName"
-          variant="primary"
-          state="active"
-          icon={<StoreIcon size={16} />}
-        />
-        <span style={{ color: '#6B7280', fontSize: 18, lineHeight: 1 }}>•</span>
-        <Selector
-          label="01/06/26"
-          variant="primary"
-          state="active"
-          icon={<CalendarIcon size={16} />}
-        />
-      </div>
+      <ContextBar storeLabel="StoreName" dateLabel="01/06/26" />
 
       <div
         style={{
