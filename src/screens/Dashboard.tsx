@@ -42,6 +42,13 @@ type Props = {
   onTileClick?: (tile: DashboardTile) => void
   /** Called when the header bell icon is tapped */
   onNotifications?: () => void
+  /** Called when the context bar's store selector is tapped */
+  onPickStores?: () => void
+  /** Called when the context bar's date selector is tapped */
+  onPickDate?: () => void
+  /** Overrides for the context bar selector labels */
+  storeLabel?: string
+  dateLabel?: string
 }
 
 const TABS = ['Sales', 'Labor', 'Store', 'Product']
@@ -56,6 +63,10 @@ export function Dashboard({
   onInventory,
   onTileClick,
   onNotifications,
+  onPickStores,
+  onPickDate,
+  storeLabel = 'StoreName',
+  dateLabel = '01/06/26',
 }: Props = {}) {
   const [tab, setTab] = useState<string>(initialTab)
   // Initial-mount loading skeleton. Real auth + API integration replaces
@@ -110,7 +121,12 @@ export function Dashboard({
         </button>
       </header>
 
-      <ContextBar storeLabel="StoreName" dateLabel="01/06/26" />
+      <ContextBar
+        storeLabel={storeLabel}
+        dateLabel={dateLabel}
+        onStoreClick={onPickStores}
+        onDateClick={onPickDate}
+      />
 
       <div
         style={{

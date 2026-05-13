@@ -14,6 +14,8 @@ import { NewVersionAvailable } from './screens/NewVersionAvailable'
 import { NetworkError } from './screens/NetworkError'
 import { Notifications } from './screens/Notifications'
 import { Inventory } from './screens/Inventory'
+import { StoresPicker } from './screens/StoresPicker'
+import { FilterByDate } from './screens/FilterByDate'
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
 // own chunk, off the auth + dashboard critical path.
@@ -66,6 +68,7 @@ type Route =
   | 'dashboard-error'
   | 'network-error'
   | 'inventory'
+  | 'stores-picker'
   | 'tills'
   | 'check-search'
   | 'thanksgiving-feast'
@@ -100,8 +103,10 @@ const SPLASH_VERSION_PROMPT_DELAY_MS = 1200
 
 function App() {
   const [route, setRoute] = useState<Route>('splash')
+  const [previousRoute, setPreviousRoute] = useState<Route>('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [dateFilterOpen, setDateFilterOpen] = useState(false)
   const [versionPromptOpen, setVersionPromptOpen] = useState(false)
   const [chooseNewPasswordError, setChooseNewPasswordError] = useState<
     string | undefined
@@ -119,9 +124,16 @@ function App() {
   const goto = (r: Route) => {
     setMenuOpen(false)
     setNotificationsOpen(false)
+    setDateFilterOpen(false)
     setVersionPromptOpen(false)
     setRoute(r)
   }
+
+  const openStoresPicker = () => {
+    setPreviousRoute(route)
+    goto('stores-picker')
+  }
+  const openDateFilter = () => setDateFilterOpen(true)
 
   const onTileClick = (tile: DashboardTile) => {
     const target = TILE_ROUTES[tile]
@@ -215,6 +227,8 @@ function App() {
             onInventory={() => goto('inventory')}
             onTileClick={onTileClick}
             onNotifications={() => setNotificationsOpen(true)}
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
           />
           <MenuOverlay
             open={menuOpen}
@@ -225,6 +239,10 @@ function App() {
           <Notifications
             open={notificationsOpen}
             onDismiss={() => setNotificationsOpen(false)}
+          />
+          <FilterByDate
+            open={dateFilterOpen}
+            onDismiss={() => setDateFilterOpen(false)}
           />
         </>
       )}
@@ -234,6 +252,8 @@ function App() {
             onDashboard={() => goto('dashboard')}
             onMenu={() => setMenuOpen(true)}
             onNotifications={() => setNotificationsOpen(true)}
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
           />
           <MenuOverlay
             open={menuOpen}
@@ -245,7 +265,17 @@ function App() {
             open={notificationsOpen}
             onDismiss={() => setNotificationsOpen(false)}
           />
+          <FilterByDate
+            open={dateFilterOpen}
+            onDismiss={() => setDateFilterOpen(false)}
+          />
         </>
+      )}
+      {route === 'stores-picker' && (
+        <StoresPicker
+          onBack={() => goto(previousRoute)}
+          onApply={() => goto(previousRoute)}
+        />
       )}
       {route === 'dashboard-error' && (
         <Dashboard
@@ -259,7 +289,18 @@ function App() {
       )}
 
       {route === 'tills' && (
-        <Tills onBack={() => goto('dashboard')} defaultTab="Closed" />
+        <>
+          <Tills
+            onBack={() => goto('dashboard')}
+            defaultTab="Closed"
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
+          />
+          <FilterByDate
+            open={dateFilterOpen}
+            onDismiss={() => setDateFilterOpen(false)}
+          />
+        </>
       )}
       {route === 'check-search' && <CheckSearch onBack={() => goto('dashboard')} />}
       {route === 'thanksgiving-feast' && (
@@ -270,15 +311,49 @@ function App() {
         route === 'discounts' ||
         route === 'taxes' ||
         route === 'service-charges') && (
-        <Suspense fallback={<DetailFallback />}>
-          {route === 'net-sales' && <NetSales onBack={() => goto('dashboard')} />}
-          {route === 'payments' && <Payments onBack={() => goto('dashboard')} />}
-          {route === 'discounts' && <Discounts onBack={() => goto('dashboard')} />}
-          {route === 'taxes' && <Taxes onBack={() => goto('dashboard')} />}
-          {route === 'service-charges' && (
-            <ServiceCharges onBack={() => goto('dashboard')} />
-          )}
-        </Suspense>
+        <>
+          <Suspense fallback={<DetailFallback />}>
+            {route === 'net-sales' && (
+              <NetSales
+                onBack={() => goto('dashboard')}
+                onPickStores={openStoresPicker}
+                onPickDate={openDateFilter}
+              />
+            )}
+            {route === 'payments' && (
+              <Payments
+                onBack={() => goto('dashboard')}
+                onPickStores={openStoresPicker}
+                onPickDate={openDateFilter}
+              />
+            )}
+            {route === 'discounts' && (
+              <Discounts
+                onBack={() => goto('dashboard')}
+                onPickStores={openStoresPicker}
+                onPickDate={openDateFilter}
+              />
+            )}
+            {route === 'taxes' && (
+              <Taxes
+                onBack={() => goto('dashboard')}
+                onPickStores={openStoresPicker}
+                onPickDate={openDateFilter}
+              />
+            )}
+            {route === 'service-charges' && (
+              <ServiceCharges
+                onBack={() => goto('dashboard')}
+                onPickStores={openStoresPicker}
+                onPickDate={openDateFilter}
+              />
+            )}
+          </Suspense>
+          <FilterByDate
+            open={dateFilterOpen}
+            onDismiss={() => setDateFilterOpen(false)}
+          />
+        </>
       )}
     </div>
   )

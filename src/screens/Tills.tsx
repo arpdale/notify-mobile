@@ -28,15 +28,32 @@ type Props = {
   /** Which tab to render initially */
   defaultTab?: 'Open' | 'Closed' | 'Reconciled'
   onReconcile?: () => void
+  onPickStores?: () => void
+  onPickDate?: () => void
+  storeLabel?: string
+  dateLabel?: string
 }
 
-export function Tills({ onBack, defaultTab = 'Open', onReconcile }: Props) {
+export function Tills({
+  onBack,
+  defaultTab = 'Open',
+  onReconcile,
+  onPickStores,
+  onPickDate,
+  storeLabel = '13 Stores',
+  dateLabel = '01/06/26',
+}: Props) {
   const [tab, setTab] = useState<string>(defaultTab)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <ScreenHeader title="Tills" onBack={onBack} />
-      <ContextBar storeLabel="13 Stores" dateLabel="01/06/26" />
+      <ContextBar
+        storeLabel={storeLabel}
+        dateLabel={dateLabel}
+        onStoreClick={onPickStores}
+        onDateClick={onPickDate}
+      />
 
       <div
         style={{

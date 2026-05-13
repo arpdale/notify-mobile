@@ -8,9 +8,21 @@ type Props = {
   onMenu: () => void
   onDashboard: () => void
   onNotifications?: () => void
+  onPickStores?: () => void
+  onPickDate?: () => void
+  storeLabel?: string
+  dateLabel?: string
 }
 
-export function Inventory({ onMenu, onDashboard, onNotifications }: Props) {
+export function Inventory({
+  onMenu,
+  onDashboard,
+  onNotifications,
+  onPickStores,
+  onPickDate,
+  storeLabel = 'StoreName',
+  dateLabel = '01/06/26',
+}: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <header
@@ -53,7 +65,12 @@ export function Inventory({ onMenu, onDashboard, onNotifications }: Props) {
         </button>
       </header>
 
-      <ContextBar storeLabel="StoreName" dateLabel="01/06/26" />
+      <ContextBar
+        storeLabel={storeLabel}
+        dateLabel={dateLabel}
+        onStoreClick={onPickStores}
+        onDateClick={onPickDate}
+      />
 
       <div
         style={{

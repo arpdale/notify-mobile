@@ -7,6 +7,8 @@ type Props = {
   onBack: () => void
   storeLabel?: string
   dateLabel?: string
+  onPickStores?: () => void
+  onPickDate?: () => void
   children: ReactNode
 }
 
@@ -15,12 +17,19 @@ export function DetailShell({
   onBack,
   storeLabel = '13 Stores',
   dateLabel = '01/06/26',
+  onPickStores,
+  onPickDate,
   children,
 }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <ScreenHeader title={title} onBack={onBack} />
-      <ContextBar storeLabel={storeLabel} dateLabel={dateLabel} />
+      <ContextBar
+        storeLabel={storeLabel}
+        dateLabel={dateLabel}
+        onStoreClick={onPickStores}
+        onDateClick={onPickDate}
+      />
       <div
         style={{
           flex: 1,

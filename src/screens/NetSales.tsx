@@ -41,11 +41,18 @@ const DEMO_HOURS: HourRow[] = [
 
 type Props = {
   onBack: () => void
+  onPickStores?: () => void
+  onPickDate?: () => void
 }
 
-export function NetSales({ onBack }: Props) {
+export function NetSales({ onBack, onPickStores, onPickDate }: Props) {
   return (
-    <DetailShell title="Net Sales" onBack={onBack}>
+    <DetailShell
+      title="Net Sales"
+      onBack={onBack}
+      onPickStores={onPickStores}
+      onPickDate={onPickDate}
+    >
       <DetailCard title="Net Sales by hour" onExpand={() => undefined}>
         <Legend />
         <CompareLineChart
