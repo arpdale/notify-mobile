@@ -8,7 +8,15 @@ type Props = {
 
 export function Notifications({ open, onDismiss }: Props) {
   return (
-    <BottomSheet open={open} onDismiss={onDismiss} heightPercent={70}>
+    <BottomSheet
+      open={open}
+      onDismiss={onDismiss}
+      heightPercent={70}
+      // Above the floating bottom-nav (z=50) so the panel obscures the nav
+      // while open — matches the MenuOverlay treatment so all bottom-anchored
+      // sheets in the app behave the same way.
+      zIndex={60}
+    >
       <header
         style={{
           display: 'flex',
