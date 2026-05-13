@@ -18,14 +18,23 @@ import {
 import { ContextBar } from '../components/ContextBar'
 import { EmptyState } from '../components/EmptyState'
 import { Toast } from '../components/Toast'
+import { StoreView } from './dashboard/StoreView'
 
 export type DashboardState = 'ready' | 'error'
+export type DashboardTab = 'Sales' | 'Labor' | 'Store' | 'Product'
+export type StoreSubTab = 'Productivity' | 'Network' | 'Kitchen'
 
 type Props = {
   state?: DashboardState
   onRefresh?: () => void
   /** When set, renders the error toast pinned above the bottom nav */
   errorMessage?: string
+  /** Initial primary tab (Sales / Labor / Store / Product) */
+  initialTab?: DashboardTab
+  /** Initial sub-tab — only honoured when initialTab is "Store" */
+  initialStoreSubTab?: StoreSubTab
+  /** Called when the bottom-nav "Menu" item is selected */
+  onMenu?: () => void
 }
 
 const TABS = ['Sales', 'Labor', 'Store', 'Product']
@@ -92,8 +101,11 @@ export function Dashboard({
   state = 'ready',
   onRefresh,
   errorMessage,
+  initialTab = 'Sales',
+  initialStoreSubTab,
+  onMenu,
 }: Props = {}) {
-  const [tab, setTab] = useState('Sales')
+  const [tab, setTab] = useState<string>(initialTab)
   const [nav, setNav] = useState('dashboard')
 
   return (
@@ -214,7 +226,11 @@ export function Dashboard({
           </MetricTileGrid>
         )}
 
-        {state === 'ready' && tab !== 'Sales' && (
+        {state === 'ready' && tab === 'Store' && (
+          <StoreView initialSubTab={initialStoreSubTab} />
+        )}
+
+        {state === 'ready' && (tab === 'Labor' || tab === 'Product') && (
           <div
             style={{
               marginTop: 40,
@@ -232,7 +248,17 @@ export function Dashboard({
         <Toast message={errorMessage} variant="error" position="attached" />
       ) : (
         <BottomNavContainer>
-          <BottomNav items={NAV_ITEMS} value={nav} onValueChange={setNav} />
+          <BottomNav
+            items={NAV_ITEMS}
+            value={nav}
+            onValueChange={(v) => {
+              if (v === 'menu') {
+                onMenu?.()
+              } else {
+                setNav(v)
+              }
+            }}
+          />
         </BottomNavContainer>
       )}
     </div>
