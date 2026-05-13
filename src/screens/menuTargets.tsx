@@ -2,10 +2,11 @@ import { EmptyState } from '../components/EmptyState'
 import { MenuTargetPage } from '../components/MenuTargetPage'
 import { BoxIcon, MenuIcon } from '../icons'
 
-/** Five thin menu-target pages that share a "coming soon" body. Each owns
- *  its title + bottom-nav handlers; the body fill-out happens screen-by-
- *  screen as design lands. Kept in one module so the file count doesn't
- *  balloon for what is still placeholder content. */
+/** Three thin menu-target pages that share a "coming soon" body
+ *  (Digital Channels, Kitchen Intelligence, Product Tour). Each owns
+ *  its title + bottom-nav handlers; the body fill-out happens
+ *  screen-by-screen as design lands. Kept in one module so the file
+ *  count doesn't balloon for placeholder content. */
 
 type CommonProps = {
   onDashboard: () => void
@@ -29,10 +30,6 @@ function Placeholder({
   )
 }
 
-export function Settings(props: CommonProps) {
-  return <Placeholder title="Settings" {...props} />
-}
-
 export function DigitalChannels(props: CommonProps) {
   return <Placeholder title="Digital Channels" {...props} />
 }
@@ -47,10 +44,6 @@ export function KitchenIntelligence(props: CommonProps) {
       />
     </MenuTargetPage>
   )
-}
-
-export function Analyze(props: CommonProps) {
-  return <Placeholder title="Analyze" {...props} />
 }
 
 export function ProductTour(props: CommonProps) {

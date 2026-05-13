@@ -8,12 +8,12 @@ import { Tills } from './screens/Tills'
 import { CheckSearch } from './screens/CheckSearch'
 import { MenuOverlay, type MenuItemId } from './screens/MenuOverlay'
 import { Forecast } from './screens/Forecast'
+import { Settings } from './screens/Settings'
+import { Analyze } from './screens/Analyze'
 import {
-  Analyze,
   DigitalChannels,
   KitchenIntelligence,
   ProductTour,
-  Settings,
 } from './screens/menuTargets'
 import { EnableFaceId } from './screens/EnableFaceId'
 import { ThanksgivingFeast } from './screens/ThanksgivingFeast'
@@ -335,6 +335,8 @@ function App() {
           onDashboard={() => goto('dashboard')}
           onInventory={() => goto('inventory')}
           onMenu={() => setMenuOpen(true)}
+          preferredStoreCount={selectedStoreIds.size}
+          onPickStores={openStoresPicker}
         />
       )}
       {baseRoute === 'digital-channels' && (
