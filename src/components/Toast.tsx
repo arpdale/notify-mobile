@@ -23,7 +23,11 @@ export function Toast({ message, variant = 'error', position = 'floating' }: Pro
       role="status"
       aria-live="polite"
       style={{
-        position: 'absolute',
+        // Attached pins to the viewport bottom (replaces the bottom nav);
+        // floating anchors to its nearest positioned ancestor (e.g. AuthShell)
+        // so it sits at the bottom of the screen content, not the page.
+        position: isAttached ? 'fixed' : 'absolute',
+        zIndex: isAttached ? 15 : undefined,
         left: isAttached ? 0 : 16,
         right: isAttached ? 0 : 16,
         bottom: isAttached ? 0 : 24,

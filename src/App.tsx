@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { PhoneFrame } from './PhoneFrame'
 import { SignIn } from './screens/SignIn'
 import { Dashboard, type DashboardTile } from './screens/Dashboard'
 import { ResetPassword } from './screens/ResetPassword'
@@ -149,7 +148,16 @@ function App() {
   }
 
   return (
-    <PhoneFrame>
+    <div
+      style={{
+        height: '100svh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--color-surface-app, #F4F4F4)',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
       {route === 'splash' && (
         <>
           <Splash />
@@ -272,7 +280,7 @@ function App() {
           )}
         </Suspense>
       )}
-    </PhoneFrame>
+    </div>
   )
 }
 

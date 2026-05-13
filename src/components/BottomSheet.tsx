@@ -31,7 +31,7 @@ export function BottomSheet({
       aria-modal="true"
       onClick={onDismiss}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         inset: 0,
         zIndex: 20,
         display: 'flex',
