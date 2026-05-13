@@ -34,8 +34,10 @@ export function BottomSheet({
   // Phase 1: map open changes to entering/exiting.
   useEffect(() => {
     if (open && (phase === 'exited' || phase === 'exiting')) {
+      console.log('[BottomSheet] open=true; setting phase → entering')
       setPhase('entering')
     } else if (!open && (phase === 'entered' || phase === 'entering')) {
+      console.log('[BottomSheet] open=false; setting phase → exiting')
       setPhase('exiting')
     }
   }, [open, phase])
@@ -61,7 +63,11 @@ export function BottomSheet({
   // sheet mid-slide.
   useEffect(() => {
     if (phase !== 'exiting') return
-    const t = window.setTimeout(() => setPhase('exited'), DURATION_MS + 20)
+    console.log('[BottomSheet] phase=exiting; scheduling unmount in', DURATION_MS + 20)
+    const t = window.setTimeout(() => {
+      console.log('[BottomSheet] timeout fired; setting phase → exited')
+      setPhase('exited')
+    }, DURATION_MS + 20)
     return () => window.clearTimeout(t)
   }, [phase])
 
