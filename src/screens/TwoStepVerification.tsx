@@ -8,7 +8,8 @@ const CODE_LENGTH = 6
 
 type Props = {
   onBack: () => void
-  onContinue: () => void
+  /** Fires with the entered code so callers can branch on demo / error codes */
+  onContinue: (code: string) => void
 }
 
 export function TwoStepVerification({ onBack, onContinue }: Props) {
@@ -106,7 +107,7 @@ export function TwoStepVerification({ onBack, onContinue }: Props) {
           size="lg"
           state={canSubmit ? 'active' : 'inactive'}
           disabled={!canSubmit}
-          onClick={onContinue}
+          onClick={() => onContinue(code)}
         >
           Continue
         </Button>
