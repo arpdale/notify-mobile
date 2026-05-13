@@ -43,7 +43,7 @@ export function CompareLineChart({
 }: Props) {
   return (
     <div style={{ width: '100%', height }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={CHART_COLORS.grid} vertical={false} />
           <XAxis
