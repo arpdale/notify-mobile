@@ -18,7 +18,7 @@ type Props = {
 const DURATION_MS = 280
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'
 
-type Phase = 'exited' | 'entering' | 'entered' | 'exiting'
+type Phase = 'closed' | 'open' | 'closing'
 
 export function BottomSheet({
   open,
@@ -29,45 +29,21 @@ export function BottomSheet({
   handleColor = '#000000',
   zIndex = 20,
 }: Props) {
-  const [phase, setPhase] = useState<Phase>(open ? 'entered' : 'exited')
+  const [phase, setPhase] = useState<Phase>(open ? 'open' : 'closed')
 
-  // Phase 1: map open changes to entering/exiting.
+  // Map open changes to phase. closing → closed happens via the timer below.
   useEffect(() => {
-    if (open && (phase === 'exited' || phase === 'exiting')) {
-      console.log('[BottomSheet] open=true; setting phase → entering')
-      setPhase('entering')
-    } else if (!open && (phase === 'entered' || phase === 'entering')) {
-      console.log('[BottomSheet] open=false; setting phase → exiting')
-      setPhase('exiting')
+    if (open && (phase === 'closed' || phase === 'closing')) {
+      setPhase('open')
+    } else if (!open && phase === 'open') {
+      setPhase('closing')
     }
   }, [open, phase])
 
-  // Phase 2: once entering has rendered + painted, flip to entered so the
-  // browser sees a real transform change and animates the slide-up.
+  // Schedule the unmount after the close animation duration.
   useEffect(() => {
-    if (phase !== 'entering') return
-    let raf2: number | null = null
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setPhase('entered'))
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      if (raf2 !== null) cancelAnimationFrame(raf2)
-    }
-  }, [phase])
-
-  // Phase 3: when exiting starts, schedule the unmount after the transition
-  // duration. transitionEnd is unreliable for compound animations like this
-  // — the scrim's opacity transition and the sheet's transform transition
-  // each fire their own events, and whichever lands first would unmount the
-  // sheet mid-slide.
-  useEffect(() => {
-    if (phase !== 'exiting') return
-    console.log('[BottomSheet] phase=exiting; scheduling unmount in', DURATION_MS + 20)
-    const t = window.setTimeout(() => {
-      console.log('[BottomSheet] timeout fired; setting phase → exited')
-      setPhase('exited')
-    }, DURATION_MS + 20)
+    if (phase !== 'closing') return
+    const t = window.setTimeout(() => setPhase('closed'), DURATION_MS + 20)
     return () => window.clearTimeout(t)
   }, [phase])
 
@@ -81,9 +57,17 @@ export function BottomSheet({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onDismiss])
 
-  if (phase === 'exited') return null
+  if (phase === 'closed') return null
 
-  const isOffScreen = phase === 'entering' || phase === 'exiting'
+  const scrimAnimation =
+    phase === 'open'
+      ? `bs-fade-in ${DURATION_MS}ms ${EASE} forwards`
+      : `bs-fade-out ${DURATION_MS}ms ${EASE} forwards`
+
+  const sheetAnimation =
+    phase === 'open'
+      ? `bs-slide-up ${DURATION_MS}ms ${EASE} forwards`
+      : `bs-slide-down ${DURATION_MS}ms ${EASE} forwards`
 
   return (
     <div
@@ -97,8 +81,7 @@ export function BottomSheet({
         display: 'flex',
         alignItems: 'flex-end',
         background: 'rgba(0,0,0,0.45)',
-        opacity: isOffScreen ? 0 : 1,
-        transition: `opacity ${DURATION_MS}ms ${EASE}`,
+        animation: scrimAnimation,
       }}
     >
       <div
@@ -113,8 +96,7 @@ export function BottomSheet({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          transform: isOffScreen ? 'translateY(100%)' : 'translateY(0)',
-          transition: `transform ${DURATION_MS}ms ${EASE}`,
+          animation: sheetAnimation,
           willChange: 'transform',
           boxShadow: '0 -12px 24px rgba(0,0,0,0.18)',
         }}
