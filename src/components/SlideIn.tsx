@@ -9,7 +9,8 @@ type Props = {
   onExited?: () => void
   /** When set, Escape key fires this — typically the same handler that flips open=false */
   onDismiss?: () => void
-  /** z-index; default 30 (above bottom-nav 10 and base content) */
+  /** z-index; default 60 (above the floating bottom-nav at z=50 so the
+   *  overlay covers the global nav while presented). */
   zIndex?: number
   children: ReactNode
 }
@@ -28,7 +29,7 @@ export function SlideIn({
   direction,
   onExited,
   onDismiss,
-  zIndex = 30,
+  zIndex = 60,
   children,
 }: Props) {
   const [phase, setPhase] = useState<Phase>(open ? 'entered' : 'exited')
