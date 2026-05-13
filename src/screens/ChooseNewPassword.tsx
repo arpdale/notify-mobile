@@ -9,7 +9,8 @@ const CODE_LENGTH = 6
 
 type Props = {
   onBack: () => void
-  onSubmit: () => void
+  /** Fires with the entered code so callers can branch on demo / error codes */
+  onSubmit: (code: string) => void
   /** Recipient email displayed in the description (best-effort placeholder) */
   emailHint?: string
   /** If set, renders the error toast variant pinned to the bottom */
@@ -145,7 +146,7 @@ export function ChooseNewPassword({
           size="lg"
           state={canSubmit ? 'active' : 'inactive'}
           disabled={!canSubmit}
-          onClick={onSubmit}
+          onClick={() => onSubmit(code)}
         >
           Save And Continue
         </Button>

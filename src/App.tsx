@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PhoneFrame } from './PhoneFrame'
 import { SignIn } from './screens/SignIn'
 import { Dashboard, type DashboardTile } from './screens/Dashboard'
@@ -15,14 +15,20 @@ import { Payments } from './screens/Payments'
 import { Discounts } from './screens/Discounts'
 import { Taxes } from './screens/Taxes'
 import { ServiceCharges } from './screens/ServiceCharges'
+import { Splash } from './screens/Splash'
+import { NewVersionAvailable } from './screens/NewVersionAvailable'
+import { NetworkError } from './screens/NetworkError'
 
 type Route =
+  | 'splash'
   | 'sign-in'
   | 'reset-password'
   | 'two-step-verification'
   | 'choose-new-password'
   | 'enable-face-id'
   | 'dashboard'
+  | 'dashboard-error'
+  | 'network-error'
   | 'tills'
   | 'check-search'
   | 'thanksgiving-feast'
@@ -40,20 +46,81 @@ const TILE_ROUTES: Partial<Record<DashboardTile, Route>> = {
   Tills: 'tills',
 }
 
+/** Demo-only codes wired into 2FA + reset flow to surface error states.
+ *  Real auth comes in a later tier; for now these codes let testers
+ *  reach Dashboard-error / NetworkError / Choose-new-password-toast
+ *  from the running app. */
+const DEMO_CODES = {
+  /** 2FA: lands the Dashboard error state with toast */
+  DASHBOARD_ERROR: '000000',
+  /** 2FA: lands the standalone NetworkError screen */
+  NETWORK_ERROR: '111111',
+  /** Choose New Password: surfaces the error toast variant */
+  CHOOSE_PASSWORD_ERROR: '000000',
+} as const
+
+const SPLASH_VERSION_PROMPT_DELAY_MS = 1200
+
 function App() {
-  const [route, setRoute] = useState<Route>('sign-in')
+  const [route, setRoute] = useState<Route>('splash')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [versionPromptOpen, setVersionPromptOpen] = useState(false)
+  const [chooseNewPasswordError, setChooseNewPasswordError] = useState<
+    string | undefined
+  >(undefined)
+
+  // Show the New Version Available modal once, shortly after the app lands
+  // on Splash. Subsequent visits to /splash don't re-trigger (the cleanup
+  // resets the timer, but the prompt is tied to a one-shot user moment).
+  useEffect(() => {
+    if (route !== 'splash') return
+    const t = setTimeout(() => setVersionPromptOpen(true), SPLASH_VERSION_PROMPT_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [route])
+
   const goto = (r: Route) => {
     setMenuOpen(false)
+    setVersionPromptOpen(false)
     setRoute(r)
   }
+
   const onTileClick = (tile: DashboardTile) => {
     const target = TILE_ROUTES[tile]
     if (target) goto(target)
   }
 
+  const handleTwoFactor = (code: string) => {
+    if (code === DEMO_CODES.DASHBOARD_ERROR) {
+      goto('dashboard-error')
+    } else if (code === DEMO_CODES.NETWORK_ERROR) {
+      goto('network-error')
+    } else {
+      goto('enable-face-id')
+    }
+  }
+
+  const handleChooseNewPassword = (code: string) => {
+    if (code === DEMO_CODES.CHOOSE_PASSWORD_ERROR) {
+      setChooseNewPasswordError('Ooops, we are having problems')
+    } else {
+      setChooseNewPasswordError(undefined)
+      goto('dashboard')
+    }
+  }
+
   return (
     <PhoneFrame>
+      {route === 'splash' && (
+        <>
+          <Splash />
+          <NewVersionAvailable
+            open={versionPromptOpen}
+            onUpdate={() => goto('sign-in')}
+            onLater={() => goto('sign-in')}
+          />
+        </>
+      )}
+
       {route === 'sign-in' && (
         <SignIn
           onSignIn={() => goto('two-step-verification')}
@@ -63,19 +130,23 @@ function App() {
       {route === 'reset-password' && (
         <ResetPassword
           onBack={() => goto('sign-in')}
-          onSendCode={() => goto('choose-new-password')}
+          onSendCode={() => {
+            setChooseNewPasswordError(undefined)
+            goto('choose-new-password')
+          }}
         />
       )}
       {route === 'two-step-verification' && (
         <TwoStepVerification
           onBack={() => goto('sign-in')}
-          onContinue={() => goto('enable-face-id')}
+          onContinue={handleTwoFactor}
         />
       )}
       {route === 'choose-new-password' && (
         <ChooseNewPassword
           onBack={() => goto('sign-in')}
-          onSubmit={() => goto('dashboard')}
+          onSubmit={handleChooseNewPassword}
+          errorMessage={chooseNewPasswordError}
         />
       )}
       {route === 'enable-face-id' && (
@@ -99,6 +170,16 @@ function App() {
             onLogOut={() => goto('sign-in')}
           />
         </>
+      )}
+      {route === 'dashboard-error' && (
+        <Dashboard
+          state="error"
+          onRefresh={() => goto('dashboard')}
+          errorMessage="Ooops, we are having problems"
+        />
+      )}
+      {route === 'network-error' && (
+        <NetworkError onRefresh={() => goto('sign-in')} />
       )}
 
       {route === 'tills' && (
