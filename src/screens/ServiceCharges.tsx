@@ -32,15 +32,22 @@ type Props = {
   onBack: () => void
   onPickStores?: () => void
   onPickDate?: () => void
+  storeLabel?: string
 }
 
-export function ServiceCharges({ onBack, onPickStores, onPickDate }: Props) {
+export function ServiceCharges({
+  onBack,
+  onPickStores,
+  onPickDate,
+  storeLabel,
+}: Props) {
   return (
     <DetailShell
       title="Service Charges"
       onBack={onBack}
       onPickStores={onPickStores}
       onPickDate={onPickDate}
+      storeLabel={storeLabel}
     >
       <DetailCard title="Service Charges Amount by Title" onExpand={() => undefined}>
         <CategoryPieChart data={AMOUNT_SLICES} />

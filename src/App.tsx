@@ -17,6 +17,24 @@ import { Inventory } from './screens/Inventory'
 import { StoresPicker } from './screens/StoresPicker'
 import { FilterByDate } from './screens/FilterByDate'
 import { SlideIn } from './components/SlideIn'
+import { DEFAULT_SELECTED_STORE_IDS, formatStoreLabel } from './lib/stores'
+
+const STORES_LS_KEY = 'notify-selected-store-ids'
+
+function loadSelectedStoreIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORES_LS_KEY)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+        return new Set(parsed)
+      }
+    }
+  } catch {
+    // localStorage unavailable / parse failure — fall through to defaults
+  }
+  return new Set(DEFAULT_SELECTED_STORE_IDS)
+}
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
 // own chunk, off the auth + dashboard critical path.
@@ -110,6 +128,22 @@ function App() {
   const [chooseNewPasswordError, setChooseNewPasswordError] = useState<
     string | undefined
   >(undefined)
+
+  // Store selection lives at the App level — every screen with a context
+  // bar reads the same N, and the picker writes back into the same set.
+  // Persisted to localStorage so a refresh doesn't reset the user's choice.
+  const [selectedStoreIds, setSelectedStoreIds] = useState<Set<string>>(
+    loadSelectedStoreIds,
+  )
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORES_LS_KEY, JSON.stringify([...selectedStoreIds]))
+    } catch {
+      // ignore quota / private-mode errors
+    }
+  }, [selectedStoreIds])
+
+  const storeLabel = formatStoreLabel(selectedStoreIds)
 
   useEffect(() => {
     if (baseRoute !== 'splash') return
@@ -227,6 +261,7 @@ function App() {
           onNotifications={() => setNotificationsOpen(true)}
           onPickStores={openStoresPicker}
           onPickDate={openDateFilter}
+          storeLabel={storeLabel}
         />
       )}
       {baseRoute === 'inventory' && (
@@ -236,6 +271,7 @@ function App() {
           onNotifications={() => setNotificationsOpen(true)}
           onPickStores={openStoresPicker}
           onPickDate={openDateFilter}
+          storeLabel={storeLabel}
         />
       )}
       {baseRoute === 'dashboard-error' && (
@@ -259,6 +295,7 @@ function App() {
           defaultTab="Closed"
           onPickStores={openStoresPicker}
           onPickDate={openDateFilter}
+          storeLabel={storeLabel}
         />
       </SlideIn>
       <SlideIn
@@ -281,6 +318,7 @@ function App() {
             onBack={closePush}
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
+            storeLabel={storeLabel}
           />
         </Suspense>
       </SlideIn>
@@ -290,6 +328,7 @@ function App() {
             onBack={closePush}
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
+            storeLabel={storeLabel}
           />
         </Suspense>
       </SlideIn>
@@ -299,6 +338,7 @@ function App() {
             onBack={closePush}
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
+            storeLabel={storeLabel}
           />
         </Suspense>
       </SlideIn>
@@ -308,6 +348,7 @@ function App() {
             onBack={closePush}
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
+            storeLabel={storeLabel}
           />
         </Suspense>
       </SlideIn>
@@ -321,6 +362,7 @@ function App() {
             onBack={closePush}
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
+            storeLabel={storeLabel}
           />
         </Suspense>
       </SlideIn>
@@ -331,7 +373,11 @@ function App() {
         direction="bottom"
         onDismiss={closeStoresPicker}
       >
-        <StoresPicker onBack={closeStoresPicker} onApply={closeStoresPicker} />
+        <StoresPicker
+          onBack={closeStoresPicker}
+          selectedIds={selectedStoreIds}
+          onChange={setSelectedStoreIds}
+        />
       </SlideIn>
       <SlideIn
         open={dateFilterOpen}

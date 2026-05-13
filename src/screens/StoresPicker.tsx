@@ -1,66 +1,36 @@
 import { useMemo, useState } from 'react'
 import { Button, InputField } from '@david-richard/notify-ds'
 import { ScreenHeader } from '../components/ScreenHeader'
-
-type Store = {
-  id: string
-  name: string
-  /** Whether this store is in the user's "preferred" set */
-  preferred?: boolean
-}
-
-const DEMO_STORES: Store[] = [
-  { id: 'admin-team', name: 'Milksha - Admin Team', preferred: true },
-  { id: 'denver-lab', name: 'Milksha - Denver Lab' },
-  { id: 'great-mall', name: 'Milksha - Great Mall CA' },
-  { id: 'ontario-mills', name: 'Milksha - Ontario Mills, CA', preferred: true },
-  { id: 'qu-hq-dev', name: 'Milksha - QU HQ Dev Lab Test', preferred: true },
-  { id: 'westwood', name: 'Milksha - Westwood CA', preferred: true },
-  { id: 'west-covina', name: 'Milksha HQ Lab (West Covina)', preferred: true },
-  { id: 'qu-hq', name: 'Milksha Qu HQ', preferred: true },
-  { id: 'smashburger-corp', name: 'Smashburger Corporate Lab', preferred: true },
-  { id: 'smashburger-qu', name: 'Smashburger Qu HQ', preferred: true },
-]
-
-const DEFAULT_SELECTED = new Set(
-  DEMO_STORES.filter((s) => s.preferred).map((s) => s.id),
-)
+import { STORES, type Store } from '../lib/stores'
 
 type Props = {
   onBack: () => void
-  onApply?: (selectedIds: string[]) => void
+  /** Current selection — App owns the truth */
+  selectedIds: Set<string>
+  /** Selection changed (toggle / preset button) — App writes the truth */
+  onChange: (next: Set<string>) => void
 }
 
-export function StoresPicker({ onBack, onApply }: Props) {
+export function StoresPicker({ onBack, selectedIds, onChange }: Props) {
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(DEFAULT_SELECTED)
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return DEMO_STORES
+    if (!query.trim()) return STORES
     const q = query.trim().toLowerCase()
-    return DEMO_STORES.filter((s) => s.name.toLowerCase().includes(q))
+    return STORES.filter((s) => s.name.toLowerCase().includes(q))
   }, [query])
 
   const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    onChange(next)
   }
 
-  const selectPreferred = () => {
-    setSelected(new Set(DEMO_STORES.filter((s) => s.preferred).map((s) => s.id)))
-  }
-  const selectAll = () => {
-    setSelected(new Set(DEMO_STORES.map((s) => s.id)))
-  }
-  const removeAll = () => {
-    setSelected(new Set())
-  }
-
-  const apply = () => onApply?.([...selected])
+  const selectPreferred = () =>
+    onChange(new Set(STORES.filter((s) => s.preferred).map((s) => s.id)))
+  const selectAll = () => onChange(new Set(STORES.map((s) => s.id)))
+  const removeAll = () => onChange(new Set())
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -83,7 +53,7 @@ export function StoresPicker({ onBack, onApply }: Props) {
             color: '#6B7280',
           }}
         >
-          Selected stores ({selected.size})
+          Selected stores ({selectedIds.size})
         </p>
 
         <div style={{ marginBottom: 16 }}>
@@ -109,7 +79,7 @@ export function StoresPicker({ onBack, onApply }: Props) {
             <li key={store.id}>
               <CheckboxRow
                 label={store.name}
-                checked={selected.has(store.id)}
+                checked={selectedIds.has(store.id)}
                 onChange={() => toggle(store.id)}
               />
             </li>
@@ -131,40 +101,22 @@ export function StoresPicker({ onBack, onApply }: Props) {
           gap: 8,
         }}
       >
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => {
-            selectPreferred()
-            apply()
-          }}
-        >
+        <Button variant="primary" size="md" onClick={selectPreferred}>
           Select preferred
         </Button>
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => {
-            selectAll()
-            apply()
-          }}
-        >
+        <Button variant="primary" size="md" onClick={selectAll}>
           Select All
         </Button>
-        <Button
-          variant="secondary"
-          size="md"
-          onClick={() => {
-            removeAll()
-            apply()
-          }}
-        >
+        <Button variant="secondary" size="md" onClick={removeAll}>
           Remove All
         </Button>
       </div>
     </div>
   )
 }
+
+// Type-only import to keep the named-export list narrow.
+export type { Store }
 
 /**
  * Stable checkbox row matched against the DS Checkbox visual spec — 18×18
