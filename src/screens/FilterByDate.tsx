@@ -1,55 +1,63 @@
-import { useState } from 'react'
 import { Switcher, Toggle } from '@david-richard/notify-ds'
 import { ChevronLeftIcon } from '../icons'
-
-type DateMode = 'Day' | 'Week' | 'Month' | 'Custom'
-
-type PeriodOption = {
-  id: string
-  label: string
-  /** Small date subtext under the label */
-  sub?: string
-}
-
-const PRIMARY_OPTIONS: Record<DateMode, PeriodOption[]> = {
-  Day: [
-    { id: 'today', label: 'Today', sub: '(05/12/26)' },
-    { id: 'yesterday', label: 'Yesterday', sub: '(05/11/26)' },
-  ],
-  Week: [
-    { id: 'this-week', label: 'This Week', sub: '(05/11/26 – 05/17/26)' },
-    { id: 'last-week', label: 'Last Week', sub: '(05/04/26 – 05/10/26)' },
-  ],
-  Month: [
-    { id: 'this-month', label: 'This Month', sub: '(05/01/26 – 05/31/26)' },
-    { id: 'last-month', label: 'Last Month', sub: '(04/01/26 – 04/30/26)' },
-  ],
-  Custom: [],
-}
-
-const COMPARE_OPTIONS: PeriodOption[] = [
-  { id: 'previous-day', label: 'Previous Day', sub: '(05/11/26)' },
-  { id: 'same-date-last-year', label: 'Same Date Last Year', sub: '(05/12/25)' },
-  { id: 'same-day-last-week', label: 'Same Day Last Week', sub: '(05/05/26)' },
-  { id: 'same-day-last-year', label: 'Same Day Last Year', sub: '(05/13/25)' },
-]
+import {
+  compareOptions,
+  defaultCompareFor,
+  defaultPeriodFor,
+  primaryOptions,
+  resolvePrimary,
+  toIsoDateString,
+  type DateFilter,
+  type DateMode,
+  type PeriodOption,
+} from '../lib/dateFilter'
 
 type Props = {
+  /** Current filter — App owns the truth. */
+  filter: DateFilter
+  /** Live commit — every change writes back through this. */
+  onChange: (next: DateFilter) => void
+  /** Reference date used to compute option labels (today). Passed in for
+   *  testability + so the picker is decoupled from the system clock. */
+  today: Date
   onDismiss: () => void
-  /** Optional confirm hook — called with current selection when applied */
-  onApply?: (sel: {
-    mode: DateMode
-    period: string | null
-    compareOn: boolean
-    compare: string | null
-  }) => void
 }
 
-export function FilterByDate({ onDismiss }: Props) {
-  const [mode, setMode] = useState<DateMode>('Day')
-  const [period, setPeriod] = useState<string | null>('today')
-  const [compareOn, setCompareOn] = useState(true)
-  const [compare, setCompare] = useState<string | null>('previous-day')
+export function FilterByDate({ filter, onChange, today, onDismiss }: Props) {
+  const setMode = (next: DateMode) => {
+    // When the user switches tabs, replace period + compare with sensible
+    // defaults for the new mode rather than carrying over stale values.
+    // (Tier-7 bug: 'yesterday' would orphan in Week mode and leave the radio
+    // list with nothing selected.)
+    onChange({
+      ...filter,
+      mode: next,
+      period: defaultPeriodFor(next),
+      compare: filter.compareOn ? defaultCompareFor(next) : filter.compare,
+    })
+  }
+
+  const setPeriod = (id: string) =>
+    onChange({ ...filter, period: id })
+
+  const setCustomDate = (iso: string) =>
+    onChange({ ...filter, customDate: iso })
+
+  const setCompareOn = (next: boolean) =>
+    onChange({
+      ...filter,
+      compareOn: next,
+      // When turning on, default the compare id; when turning off, leave it
+      // intact so toggling back restores the prior choice.
+      compare: next && !filter.compare ? defaultCompareFor(filter.mode) : filter.compare,
+    })
+
+  const setCompare = (id: string) =>
+    onChange({ ...filter, compare: id })
+
+  const primary = primaryOptions(filter.mode, today)
+  const primaryRange = resolvePrimary(filter, today)
+  const compares = compareOptions(filter.mode, primaryRange)
 
   return (
     <div
@@ -103,38 +111,54 @@ export function FilterByDate({ onDismiss }: Props) {
       <div style={{ marginBottom: 16 }}>
         <Switcher
           segments={['Day', 'Week', 'Month', 'Custom']}
-          value={mode}
+          value={filter.mode}
           onValueChange={(v) => setMode(v as DateMode)}
           stretch
         />
       </div>
 
-      {mode === 'Custom' ? (
-        <p
-          style={{
-            margin: '24px 0',
-            textAlign: 'center',
-            fontFamily: "'Inter', sans-serif",
-            color: '#6B7280',
-          }}
-        >
-          Custom range picker — coming in a later tier.
-        </p>
+      {filter.mode === 'Custom' ? (
+        <div style={{ marginBottom: 12 }}>
+          <label
+            htmlFor="filter-custom-date"
+            style={{
+              display: 'block',
+              fontFamily: "'Red Hat Text', 'Inter', sans-serif",
+              fontSize: 14,
+              color: '#000',
+              marginBottom: 6,
+            }}
+          >
+            Date
+          </label>
+          <input
+            id="filter-custom-date"
+            type="date"
+            value={filter.customDate ?? toIsoDateString(today)}
+            onChange={(e) => setCustomDate(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              border: '1.5px solid #339FB8',
+              borderRadius: 9999,
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 16,
+              color: '#000',
+              outline: 'none',
+              background: '#FFFFFF',
+            }}
+          />
+        </div>
       ) : (
         <PeriodList
-          options={PRIMARY_OPTIONS[mode]}
-          value={period}
+          listName="primary"
+          options={primary}
+          value={filter.period}
           onChange={setPeriod}
-          name="filter-period"
         />
       )}
 
-      <div
-        style={{
-          margin: '16px 0',
-          borderTop: '1px solid #EAEAEA',
-        }}
-      />
+      <div style={{ margin: '16px 0', borderTop: '1px solid #EAEAEA' }} />
 
       <div
         style={{
@@ -148,15 +172,15 @@ export function FilterByDate({ onDismiss }: Props) {
         }}
       >
         <span>Compare to</span>
-        <Toggle checked={compareOn} onChange={setCompareOn} />
+        <Toggle checked={filter.compareOn} onChange={setCompareOn} />
       </div>
 
-      {compareOn && (
+      {filter.compareOn && (
         <PeriodList
-          options={COMPARE_OPTIONS}
-          value={compare}
+          listName="compare"
+          options={compares}
+          value={filter.compare}
           onChange={setCompare}
-          name="compare-period"
         />
       )}
     </div>
@@ -164,15 +188,17 @@ export function FilterByDate({ onDismiss }: Props) {
 }
 
 function PeriodList({
+  listName,
   options,
   value,
   onChange,
-  name,
 }: {
+  /** Namespaces the radio name + each input id so multiple lists on a page
+   *  don't collide on htmlFor lookups. */
+  listName: string
   options: PeriodOption[]
   value: string | null
   onChange: (id: string) => void
-  name: string
 }) {
   return (
     <ul
@@ -187,8 +213,8 @@ function PeriodList({
       {options.map((opt) => (
         <li key={opt.id}>
           <PeriodRow
-            id={opt.id}
-            name={name}
+            inputId={`${listName}-${opt.id}`}
+            name={`filter-${listName}`}
             label={opt.label}
             sub={opt.sub}
             selected={value === opt.id}
@@ -201,14 +227,14 @@ function PeriodList({
 }
 
 function PeriodRow({
-  id,
+  inputId,
   name,
   label,
   sub,
   selected,
   onSelect,
 }: {
-  id: string
+  inputId: string
   name: string
   label: string
   sub?: string
@@ -217,7 +243,7 @@ function PeriodRow({
 }) {
   return (
     <label
-      htmlFor={id}
+      htmlFor={inputId}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -230,9 +256,7 @@ function PeriodRow({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 16, color: '#000' }}>{label}</span>
-        {sub ? (
-          <span style={{ fontSize: 12, color: '#6B7280' }}>{sub}</span>
-        ) : null}
+        {sub ? <span style={{ fontSize: 12, color: '#6B7280' }}>{sub}</span> : null}
       </div>
       <span
         style={{
@@ -262,10 +286,10 @@ function PeriodRow({
           />
         ) : null}
         <input
-          id={id}
+          id={inputId}
           type="radio"
           name={name}
-          value={id}
+          value={inputId}
           checked={selected}
           onChange={onSelect}
           style={{

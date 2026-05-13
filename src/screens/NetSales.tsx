@@ -44,9 +44,16 @@ type Props = {
   onPickStores?: () => void
   onPickDate?: () => void
   storeLabel?: string
+  dateLabel?: string
 }
 
-export function NetSales({ onBack, onPickStores, onPickDate, storeLabel }: Props) {
+export function NetSales({
+  onBack,
+  onPickStores,
+  onPickDate,
+  storeLabel,
+  dateLabel,
+}: Props) {
   return (
     <DetailShell
       title="Net Sales"
@@ -54,6 +61,7 @@ export function NetSales({ onBack, onPickStores, onPickDate, storeLabel }: Props
       onPickStores={onPickStores}
       onPickDate={onPickDate}
       storeLabel={storeLabel}
+      dateLabel={dateLabel}
     >
       <DetailCard title="Net Sales by hour" onExpand={() => undefined}>
         <Legend />

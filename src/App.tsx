@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { SignIn } from './screens/SignIn'
 import { Dashboard, type DashboardTile } from './screens/Dashboard'
 import { ResetPassword } from './screens/ResetPassword'
@@ -26,8 +26,16 @@ import { StoresPicker } from './screens/StoresPicker'
 import { FilterByDate } from './screens/FilterByDate'
 import { SlideIn } from './components/SlideIn'
 import { DEFAULT_SELECTED_STORE_IDS, formatStoreLabel } from './lib/stores'
+import {
+  DEFAULT_FILTER,
+  deserializeFilter,
+  formatPillLabel,
+  serializeFilter,
+  type DateFilter,
+} from './lib/dateFilter'
 
 const STORES_LS_KEY = 'notify-selected-store-ids'
+const FILTER_LS_KEY = 'notify-date-filter'
 
 function loadSelectedStoreIds(): Set<string> {
   try {
@@ -42,6 +50,19 @@ function loadSelectedStoreIds(): Set<string> {
     // localStorage unavailable / parse failure — fall through to defaults
   }
   return new Set(DEFAULT_SELECTED_STORE_IDS)
+}
+
+function loadDateFilter(): DateFilter {
+  try {
+    const raw = localStorage.getItem(FILTER_LS_KEY)
+    if (raw) {
+      const parsed = deserializeFilter(raw)
+      if (parsed) return parsed
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_FILTER
 }
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
@@ -174,6 +195,23 @@ function App() {
 
   const storeLabel = formatStoreLabel(selectedStoreIds)
 
+  // Date filter — same pattern as stores. App owns the filter; the picker
+  // sheet is fully controlled. dateLabel feeds every ContextBar consumer.
+  const [dateFilter, setDateFilter] = useState<DateFilter>(loadDateFilter)
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_LS_KEY, serializeFilter(dateFilter))
+    } catch {
+      // ignore
+    }
+  }, [dateFilter])
+
+  // Today is captured once per App mount. A long-lived session that crosses
+  // midnight would render stale labels — acceptable for the proto; a real
+  // app would refresh on visibility change.
+  const today = useMemo(() => new Date(), [])
+  const dateLabel = formatPillLabel(dateFilter, today)
+
   useEffect(() => {
     if (baseRoute !== 'splash') return
     const t = setTimeout(() => setVersionPromptOpen(true), SPLASH_VERSION_PROMPT_DELAY_MS)
@@ -291,6 +329,7 @@ function App() {
           onPickStores={openStoresPicker}
           onPickDate={openDateFilter}
           storeLabel={storeLabel}
+          dateLabel={dateLabel}
         />
       )}
       {baseRoute === 'inventory' && (
@@ -301,6 +340,7 @@ function App() {
           onPickStores={openStoresPicker}
           onPickDate={openDateFilter}
           storeLabel={storeLabel}
+          dateLabel={dateLabel}
         />
       )}
       {baseRoute === 'dashboard-error' && (
@@ -383,6 +423,7 @@ function App() {
           onPickStores={openStoresPicker}
           onPickDate={openDateFilter}
           storeLabel={storeLabel}
+          dateLabel={dateLabel}
         />
       </SlideIn>
       <SlideIn
@@ -399,6 +440,7 @@ function App() {
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
             storeLabel={storeLabel}
+          dateLabel={dateLabel}
           />
         </Suspense>
       </SlideIn>
@@ -409,6 +451,7 @@ function App() {
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
             storeLabel={storeLabel}
+          dateLabel={dateLabel}
           />
         </Suspense>
       </SlideIn>
@@ -419,6 +462,7 @@ function App() {
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
             storeLabel={storeLabel}
+          dateLabel={dateLabel}
           />
         </Suspense>
       </SlideIn>
@@ -429,6 +473,7 @@ function App() {
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
             storeLabel={storeLabel}
+          dateLabel={dateLabel}
           />
         </Suspense>
       </SlideIn>
@@ -443,6 +488,7 @@ function App() {
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
             storeLabel={storeLabel}
+          dateLabel={dateLabel}
           />
         </Suspense>
       </SlideIn>
@@ -464,7 +510,12 @@ function App() {
         direction="bottom"
         onDismiss={closeDateFilter}
       >
-        <FilterByDate onDismiss={closeDateFilter} />
+        <FilterByDate
+          filter={dateFilter}
+          onChange={setDateFilter}
+          today={today}
+          onDismiss={closeDateFilter}
+        />
       </SlideIn>
 
       {/* ── Sheet overlays (existing BottomSheet pattern) ─────── */}
