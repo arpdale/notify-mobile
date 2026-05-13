@@ -190,3 +190,11 @@ export function DownloadIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 20V4M5 11l7-7 7 7" />
+    </svg>
+  )
+}
