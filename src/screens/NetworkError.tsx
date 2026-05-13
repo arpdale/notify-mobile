@@ -5,9 +5,10 @@ import { InfoCircleIcon } from '../icons'
 
 type Props = {
   onRefresh: () => void
+  onDevSkip?: () => void
 }
 
-export function NetworkError({ onRefresh }: Props) {
+export function NetworkError({ onRefresh, onDevSkip }: Props) {
   return (
     <div
       style={{
@@ -38,7 +39,11 @@ export function NetworkError({ onRefresh }: Props) {
           gap: 6,
         }}
       >
-        <div
+        <button
+          type="button"
+          onClick={onDevSkip}
+          disabled={!onDevSkip}
+          title={onDevSkip ? 'Skip to dashboard (dev)' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -46,11 +51,16 @@ export function NetworkError({ onRefresh }: Props) {
             fontSize: 14,
             color: '#000',
             fontFamily: "'Inter', sans-serif",
+            border: 0,
+            background: 'transparent',
+            padding: 0,
+            cursor: onDevSkip ? 'pointer' : 'default',
+            font: 'inherit',
           }}
         >
           <span>Powered by</span>
           <img src={logoQu} alt="Qu" style={{ height: 18 }} />
-        </div>
+        </button>
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>
           Version 3.6.222-build. 1483
         </span>

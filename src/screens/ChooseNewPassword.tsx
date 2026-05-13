@@ -14,6 +14,7 @@ type Props = {
   emailHint?: string
   /** If set, renders the error toast variant pinned to the bottom */
   errorMessage?: string
+  onDevSkip?: () => void
 }
 
 export function ChooseNewPassword({
@@ -21,6 +22,7 @@ export function ChooseNewPassword({
   onSubmit,
   emailHint = 'veryloooooongemail@long.com',
   errorMessage,
+  onDevSkip,
 }: Props) {
   const [code, setCode] = useState('')
   const [next, setNext] = useState('')
@@ -35,6 +37,7 @@ export function ChooseNewPassword({
   return (
     <AuthShell
       onBack={onBack}
+      onDevSkip={onDevSkip}
       heading="Choose a New Password"
       description={
         <>

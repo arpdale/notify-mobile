@@ -37,3 +37,24 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* BottomSheet enter/exit animations. Keyframes (not CSS transitions) so
+ * the playback is deterministic regardless of whether the browser painted
+ * the "from" state — transitions on inline-style swaps are flaky when the
+ * outgoing state was painted many frames earlier. */
+@keyframes bs-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes bs-slide-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+@keyframes bs-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes bs-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}

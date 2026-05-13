@@ -58,11 +58,20 @@ const ROWS: CompareRow[] = [
 
 type Props = {
   onBack: () => void
+  onPickStores?: () => void
+  onPickDate?: () => void
+  storeLabel?: string
 }
 
-export function Discounts({ onBack }: Props) {
+export function Discounts({ onBack, onPickStores, onPickDate, storeLabel }: Props) {
   return (
-    <DetailShell title="Discounts" onBack={onBack}>
+    <DetailShell
+      title="Discounts"
+      onBack={onBack}
+      onPickStores={onPickStores}
+      onPickDate={onPickDate}
+      storeLabel={storeLabel}
+    >
       <DetailCard title="Discounts Amounts by Title" onExpand={() => undefined}>
         <CategoryPieChart data={AMOUNT_SLICES} />
       </DetailCard>

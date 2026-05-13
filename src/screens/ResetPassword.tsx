@@ -5,15 +5,17 @@ import { AuthShell } from '../components/AuthShell'
 type Props = {
   onBack: () => void
   onSendCode: () => void
+  onDevSkip?: () => void
 }
 
-export function ResetPassword({ onBack, onSendCode }: Props) {
+export function ResetPassword({ onBack, onSendCode, onDevSkip }: Props) {
   const [username, setUsername] = useState('')
   const canSubmit = username.trim().length > 0
 
   return (
     <AuthShell
       onBack={onBack}
+      onDevSkip={onDevSkip}
       heading="Reset Your Password"
       description="Enter your username and we'll send a verification code to the email linked to your account."
       requiredHint="*Required Field"

@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { PhoneFrame } from './PhoneFrame'
 import { SignIn } from './screens/SignIn'
 import { Dashboard, type DashboardTile } from './screens/Dashboard'
 import { ResetPassword } from './screens/ResetPassword'
@@ -15,6 +14,27 @@ import { NewVersionAvailable } from './screens/NewVersionAvailable'
 import { NetworkError } from './screens/NetworkError'
 import { Notifications } from './screens/Notifications'
 import { Inventory } from './screens/Inventory'
+import { StoresPicker } from './screens/StoresPicker'
+import { FilterByDate } from './screens/FilterByDate'
+import { SlideIn } from './components/SlideIn'
+import { DEFAULT_SELECTED_STORE_IDS, formatStoreLabel } from './lib/stores'
+
+const STORES_LS_KEY = 'notify-selected-store-ids'
+
+function loadSelectedStoreIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORES_LS_KEY)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+        return new Set(parsed)
+      }
+    }
+  } catch {
+    // localStorage unavailable / parse failure — fall through to defaults
+  }
+  return new Set(DEFAULT_SELECTED_STORE_IDS)
+}
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
 // own chunk, off the auth + dashboard critical path.
@@ -56,7 +76,9 @@ function DetailFallback() {
   )
 }
 
-type Route =
+/** Routes that occupy the base layer of the app. These swap instantly
+ *  (no animation) — auth flow + bottom-nav homes. */
+type BaseRoute =
   | 'splash'
   | 'sign-in'
   | 'reset-password'
@@ -67,6 +89,9 @@ type Route =
   | 'dashboard-error'
   | 'network-error'
   | 'inventory'
+
+/** Routes that push on top of the base layer with a right-to-left slide. */
+type PushRoute =
   | 'tills'
   | 'check-search'
   | 'thanksgiving-feast'
@@ -76,7 +101,7 @@ type Route =
   | 'taxes'
   | 'service-charges'
 
-const TILE_ROUTES: Partial<Record<DashboardTile, Route>> = {
+const TILE_ROUTES: Partial<Record<DashboardTile, PushRoute>> = {
   'Net Sales': 'net-sales',
   Payments: 'payments',
   Discounts: 'discounts',
@@ -84,59 +109,67 @@ const TILE_ROUTES: Partial<Record<DashboardTile, Route>> = {
   Tills: 'tills',
 }
 
-/** Demo-only codes wired into 2FA + reset flow to surface error states.
- *  Real auth comes in a later tier; for now these codes let testers
- *  reach Dashboard-error / NetworkError / Choose-new-password-toast
- *  from the running app. */
 const DEMO_CODES = {
-  /** 2FA: lands the Dashboard error state with toast */
   DASHBOARD_ERROR: '000000',
-  /** 2FA: lands the standalone NetworkError screen */
   NETWORK_ERROR: '111111',
-  /** Choose New Password: surfaces the error toast variant */
   CHOOSE_PASSWORD_ERROR: '000000',
 } as const
 
 const SPLASH_VERSION_PROMPT_DELAY_MS = 1200
 
 function App() {
-  const [route, setRoute] = useState<Route>('splash')
+  const [baseRoute, setBaseRoute] = useState<BaseRoute>('splash')
+  const [push, setPush] = useState<PushRoute | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [storesPickerOpen, setStoresPickerOpen] = useState(false)
+  const [dateFilterOpen, setDateFilterOpen] = useState(false)
   const [versionPromptOpen, setVersionPromptOpen] = useState(false)
   const [chooseNewPasswordError, setChooseNewPasswordError] = useState<
     string | undefined
   >(undefined)
 
-  // Show the New Version Available modal once, shortly after the app lands
-  // on Splash. Subsequent visits to /splash don't re-trigger (the cleanup
-  // resets the timer, but the prompt is tied to a one-shot user moment).
+  // Store selection lives at the App level — every screen with a context
+  // bar reads the same N, and the picker writes back into the same set.
+  // Persisted to localStorage so a refresh doesn't reset the user's choice.
+  const [selectedStoreIds, setSelectedStoreIds] = useState<Set<string>>(
+    loadSelectedStoreIds,
+  )
   useEffect(() => {
-    if (route !== 'splash') return
+    try {
+      localStorage.setItem(STORES_LS_KEY, JSON.stringify([...selectedStoreIds]))
+    } catch {
+      // ignore quota / private-mode errors
+    }
+  }, [selectedStoreIds])
+
+  const storeLabel = formatStoreLabel(selectedStoreIds)
+
+  useEffect(() => {
+    if (baseRoute !== 'splash') return
     const t = setTimeout(() => setVersionPromptOpen(true), SPLASH_VERSION_PROMPT_DELAY_MS)
     return () => clearTimeout(t)
-  }, [route])
+  }, [baseRoute])
 
-  const goto = (r: Route) => {
+  const goto = (r: BaseRoute) => {
     setMenuOpen(false)
     setNotificationsOpen(false)
+    setStoresPickerOpen(false)
+    setDateFilterOpen(false)
     setVersionPromptOpen(false)
-    setRoute(r)
+    setPush(null)
+    setBaseRoute(r)
   }
 
   const onTileClick = (tile: DashboardTile) => {
     const target = TILE_ROUTES[tile]
-    if (target) goto(target)
+    if (target) setPush(target)
   }
 
   const handleTwoFactor = (code: string) => {
-    if (code === DEMO_CODES.DASHBOARD_ERROR) {
-      goto('dashboard-error')
-    } else if (code === DEMO_CODES.NETWORK_ERROR) {
-      goto('network-error')
-    } else {
-      goto('enable-face-id')
-    }
+    if (code === DEMO_CODES.DASHBOARD_ERROR) goto('dashboard-error')
+    else if (code === DEMO_CODES.NETWORK_ERROR) goto('network-error')
+    else goto('enable-face-id')
   }
 
   const handleChooseNewPassword = (code: string) => {
@@ -148,9 +181,25 @@ function App() {
     }
   }
 
+  const openStoresPicker = () => setStoresPickerOpen(true)
+  const closeStoresPicker = () => setStoresPickerOpen(false)
+  const openDateFilter = () => setDateFilterOpen(true)
+  const closeDateFilter = () => setDateFilterOpen(false)
+  const closePush = () => setPush(null)
+
   return (
-    <PhoneFrame>
-      {route === 'splash' && (
+    <div
+      style={{
+        height: '100svh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--color-surface-app, #F4F4F4)',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      {/* ── Base layer ──────────────────────────────────────────── */}
+      {baseRoute === 'splash' && (
         <>
           <Splash />
           <NewVersionAvailable
@@ -161,37 +210,41 @@ function App() {
         </>
       )}
 
-      {route === 'sign-in' && (
+      {baseRoute === 'sign-in' && (
         <SignIn
           onSignIn={() => goto('two-step-verification')}
           onForgotPassword={() => goto('reset-password')}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
-      {route === 'reset-password' && (
+      {baseRoute === 'reset-password' && (
         <ResetPassword
           onBack={() => goto('sign-in')}
           onSendCode={() => {
             setChooseNewPasswordError(undefined)
             goto('choose-new-password')
           }}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
-      {route === 'two-step-verification' && (
+      {baseRoute === 'two-step-verification' && (
         <TwoStepVerification
           onBack={() => goto('sign-in')}
           onContinue={handleTwoFactor}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
-      {route === 'choose-new-password' && (
+      {baseRoute === 'choose-new-password' && (
         <ChooseNewPassword
           onBack={() => goto('sign-in')}
           onSubmit={handleChooseNewPassword}
           errorMessage={chooseNewPasswordError}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
-      {route === 'enable-face-id' && (
+      {baseRoute === 'enable-face-id' && (
         <>
-          <SignIn onSignIn={() => undefined} />
+          <SignIn onSignIn={() => undefined} onDevSkip={() => goto('dashboard')} />
           <EnableFaceId
             open
             onEnable={() => goto('dashboard')}
@@ -200,79 +253,155 @@ function App() {
         </>
       )}
 
-      {route === 'dashboard' && (
-        <>
-          <Dashboard
-            onMenu={() => setMenuOpen(true)}
-            onInventory={() => goto('inventory')}
-            onTileClick={onTileClick}
-            onNotifications={() => setNotificationsOpen(true)}
-          />
-          <MenuOverlay
-            open={menuOpen}
-            onDismiss={() => setMenuOpen(false)}
-            onCheckSearch={() => goto('check-search')}
-            onLogOut={() => goto('sign-in')}
-          />
-          <Notifications
-            open={notificationsOpen}
-            onDismiss={() => setNotificationsOpen(false)}
-          />
-        </>
+      {baseRoute === 'dashboard' && (
+        <Dashboard
+          onMenu={() => setMenuOpen(true)}
+          onInventory={() => goto('inventory')}
+          onTileClick={onTileClick}
+          onNotifications={() => setNotificationsOpen(true)}
+          onPickStores={openStoresPicker}
+          onPickDate={openDateFilter}
+          storeLabel={storeLabel}
+        />
       )}
-      {route === 'inventory' && (
-        <>
-          <Inventory
-            onDashboard={() => goto('dashboard')}
-            onMenu={() => setMenuOpen(true)}
-            onNotifications={() => setNotificationsOpen(true)}
-          />
-          <MenuOverlay
-            open={menuOpen}
-            onDismiss={() => setMenuOpen(false)}
-            onCheckSearch={() => goto('check-search')}
-            onLogOut={() => goto('sign-in')}
-          />
-          <Notifications
-            open={notificationsOpen}
-            onDismiss={() => setNotificationsOpen(false)}
-          />
-        </>
+      {baseRoute === 'inventory' && (
+        <Inventory
+          onDashboard={() => goto('dashboard')}
+          onMenu={() => setMenuOpen(true)}
+          onNotifications={() => setNotificationsOpen(true)}
+          onPickStores={openStoresPicker}
+          onPickDate={openDateFilter}
+          storeLabel={storeLabel}
+        />
       )}
-      {route === 'dashboard-error' && (
+      {baseRoute === 'dashboard-error' && (
         <Dashboard
           state="error"
           onRefresh={() => goto('dashboard')}
           errorMessage="Ooops, we are having problems"
         />
       )}
-      {route === 'network-error' && (
-        <NetworkError onRefresh={() => goto('sign-in')} />
+      {baseRoute === 'network-error' && (
+        <NetworkError
+          onRefresh={() => goto('sign-in')}
+          onDevSkip={() => goto('dashboard')}
+        />
       )}
 
-      {route === 'tills' && (
-        <Tills onBack={() => goto('dashboard')} defaultTab="Closed" />
-      )}
-      {route === 'check-search' && <CheckSearch onBack={() => goto('dashboard')} />}
-      {route === 'thanksgiving-feast' && (
-        <ThanksgivingFeast onBack={() => goto('dashboard')} />
-      )}
-      {(route === 'net-sales' ||
-        route === 'payments' ||
-        route === 'discounts' ||
-        route === 'taxes' ||
-        route === 'service-charges') && (
+      {/* ── Push overlays (slide in from right over the base) ──── */}
+      <SlideIn open={push === 'tills'} direction="right" onDismiss={closePush}>
+        <Tills
+          onBack={closePush}
+          defaultTab="Closed"
+          onPickStores={openStoresPicker}
+          onPickDate={openDateFilter}
+          storeLabel={storeLabel}
+        />
+      </SlideIn>
+      <SlideIn
+        open={push === 'check-search'}
+        direction="right"
+        onDismiss={closePush}
+      >
+        <CheckSearch onBack={closePush} />
+      </SlideIn>
+      <SlideIn
+        open={push === 'thanksgiving-feast'}
+        direction="right"
+        onDismiss={closePush}
+      >
+        <ThanksgivingFeast onBack={closePush} />
+      </SlideIn>
+      <SlideIn open={push === 'net-sales'} direction="right" onDismiss={closePush}>
         <Suspense fallback={<DetailFallback />}>
-          {route === 'net-sales' && <NetSales onBack={() => goto('dashboard')} />}
-          {route === 'payments' && <Payments onBack={() => goto('dashboard')} />}
-          {route === 'discounts' && <Discounts onBack={() => goto('dashboard')} />}
-          {route === 'taxes' && <Taxes onBack={() => goto('dashboard')} />}
-          {route === 'service-charges' && (
-            <ServiceCharges onBack={() => goto('dashboard')} />
-          )}
+          <NetSales
+            onBack={closePush}
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
+            storeLabel={storeLabel}
+          />
         </Suspense>
-      )}
-    </PhoneFrame>
+      </SlideIn>
+      <SlideIn open={push === 'payments'} direction="right" onDismiss={closePush}>
+        <Suspense fallback={<DetailFallback />}>
+          <Payments
+            onBack={closePush}
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
+            storeLabel={storeLabel}
+          />
+        </Suspense>
+      </SlideIn>
+      <SlideIn open={push === 'discounts'} direction="right" onDismiss={closePush}>
+        <Suspense fallback={<DetailFallback />}>
+          <Discounts
+            onBack={closePush}
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
+            storeLabel={storeLabel}
+          />
+        </Suspense>
+      </SlideIn>
+      <SlideIn open={push === 'taxes'} direction="right" onDismiss={closePush}>
+        <Suspense fallback={<DetailFallback />}>
+          <Taxes
+            onBack={closePush}
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
+            storeLabel={storeLabel}
+          />
+        </Suspense>
+      </SlideIn>
+      <SlideIn
+        open={push === 'service-charges'}
+        direction="right"
+        onDismiss={closePush}
+      >
+        <Suspense fallback={<DetailFallback />}>
+          <ServiceCharges
+            onBack={closePush}
+            onPickStores={openStoresPicker}
+            onPickDate={openDateFilter}
+            storeLabel={storeLabel}
+          />
+        </Suspense>
+      </SlideIn>
+
+      {/* ── Full-screen modals (slide up from bottom) ──────────── */}
+      <SlideIn
+        open={storesPickerOpen}
+        direction="bottom"
+        onDismiss={closeStoresPicker}
+      >
+        <StoresPicker
+          onBack={closeStoresPicker}
+          selectedIds={selectedStoreIds}
+          onChange={setSelectedStoreIds}
+        />
+      </SlideIn>
+      <SlideIn
+        open={dateFilterOpen}
+        direction="bottom"
+        onDismiss={closeDateFilter}
+      >
+        <FilterByDate onDismiss={closeDateFilter} />
+      </SlideIn>
+
+      {/* ── Sheet overlays (existing BottomSheet pattern) ─────── */}
+      <MenuOverlay
+        open={menuOpen}
+        onDismiss={() => setMenuOpen(false)}
+        onCheckSearch={() => {
+          setMenuOpen(false)
+          setPush('check-search')
+        }}
+        onLogOut={() => goto('sign-in')}
+      />
+      <Notifications
+        open={notificationsOpen}
+        onDismiss={() => setNotificationsOpen(false)}
+      />
+    </div>
   )
 }
 

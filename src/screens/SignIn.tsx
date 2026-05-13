@@ -6,9 +6,11 @@ import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
 type Props = {
   onSignIn: () => void
   onForgotPassword?: () => void
+  /** Dev shortcut — clicking the Powered-by-Qu lockup fires this. */
+  onDevSkip?: () => void
 }
 
-export function SignIn({ onSignIn, onForgotPassword }: Props) {
+export function SignIn({ onSignIn, onForgotPassword, onDevSkip }: Props) {
   const [username, setUsername] = useState('myemail@gmail.com')
   const [password, setPassword] = useState('demo')
 
@@ -130,18 +132,27 @@ export function SignIn({ onSignIn, onForgotPassword }: Props) {
           gap: 6,
         }}
       >
-        <div
+        <button
+          type="button"
+          onClick={onDevSkip}
+          disabled={!onDevSkip}
+          title={onDevSkip ? 'Skip to dashboard (dev)' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
             fontSize: 14,
             color: '#000',
+            border: 0,
+            background: 'transparent',
+            padding: 0,
+            cursor: onDevSkip ? 'pointer' : 'default',
+            font: 'inherit',
           }}
         >
           <span>Powered by</span>
           <img src={logoQu} alt="Qu" style={{ height: 18 }} />
-        </div>
+        </button>
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>
           Version 3.6.222-build. 1483
         </span>
