@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 import { CHART_COLORS } from './colors'
 
-type Point = Record<string, number | string>
+type Point = Record<string, number | string | null | undefined>
 
 type Props = {
   data: Point[]
