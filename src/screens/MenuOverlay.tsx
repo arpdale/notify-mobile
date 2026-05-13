@@ -8,6 +8,11 @@ type MenuItem = {
   badge?: ReactNode
 }
 
+// Dark slate matching walkthrough frame 0062 — solid surface, slight cool tint.
+const SHEET_BG = '#1F2329'
+const TEXT_PRIMARY = '#FFFFFF'
+const TEXT_SECONDARY = 'rgba(255,255,255,0.55)'
+
 type Props = {
   open: boolean
   onDismiss: () => void
@@ -40,7 +45,16 @@ export function MenuOverlay({
   const support: MenuItem[] = [{ label: 'Analyze' }, { label: 'Product Tour' }]
 
   return (
-    <BottomSheet open={open} onDismiss={onDismiss} heightPercent={68}>
+    <BottomSheet
+      open={open}
+      onDismiss={onDismiss}
+      heightPercent={70}
+      background={SHEET_BG}
+      handleColor="rgba(255,255,255,0.4)"
+      // Above the floating bottom-nav (z=50). The drawer should obscure the
+      // nav while open so users can't accidentally route away mid-menu.
+      zIndex={60}
+    >
       <div
         style={{
           display: 'flex',
@@ -76,7 +90,7 @@ export function MenuOverlay({
             fontFamily: "'Red Hat Display', 'Inter', sans-serif",
             fontSize: 22,
             fontWeight: 700,
-            color: '#000',
+            color: TEXT_PRIMARY,
             textDecoration: 'underline',
           }}
         >
@@ -86,7 +100,7 @@ export function MenuOverlay({
           style={{
             alignSelf: 'center',
             fontSize: 13,
-            color: '#6B7280',
+            color: TEXT_SECONDARY,
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -106,7 +120,7 @@ function MenuSection({ title, items }: { title: string; items: MenuItem[] }) {
           fontFamily: "'Red Hat Display', 'Inter', sans-serif",
           fontSize: 24,
           fontWeight: 700,
-          color: '#000',
+          color: TEXT_PRIMARY,
         }}
       >
         {title}
@@ -141,7 +155,7 @@ function MenuSection({ title, items }: { title: string; items: MenuItem[] }) {
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 18,
                 fontWeight: 500,
-                color: '#000',
+                color: TEXT_PRIMARY,
                 textAlign: 'left',
               }}
             >
