@@ -33,6 +33,7 @@ type Props = {
   onPickStores?: () => void
   onPickDate?: () => void
   storeLabel?: string
+  dateLabel?: string
 }
 
 export function ServiceCharges({
@@ -40,6 +41,7 @@ export function ServiceCharges({
   onPickStores,
   onPickDate,
   storeLabel,
+  dateLabel,
 }: Props) {
   return (
     <DetailShell
@@ -48,6 +50,7 @@ export function ServiceCharges({
       onPickStores={onPickStores}
       onPickDate={onPickDate}
       storeLabel={storeLabel}
+      dateLabel={dateLabel}
     >
       <DetailCard title="Service Charges Amount by Title" onExpand={() => undefined}>
         <CategoryPieChart data={AMOUNT_SLICES} />

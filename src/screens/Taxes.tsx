@@ -49,9 +49,16 @@ type Props = {
   onPickStores?: () => void
   onPickDate?: () => void
   storeLabel?: string
+  dateLabel?: string
 }
 
-export function Taxes({ onBack, onPickStores, onPickDate, storeLabel }: Props) {
+export function Taxes({
+  onBack,
+  onPickStores,
+  onPickDate,
+  storeLabel,
+  dateLabel,
+}: Props) {
   return (
     <DetailShell
       title="Taxes"
@@ -59,6 +66,7 @@ export function Taxes({ onBack, onPickStores, onPickDate, storeLabel }: Props) {
       onPickStores={onPickStores}
       onPickDate={onPickDate}
       storeLabel={storeLabel}
+      dateLabel={dateLabel}
     >
       <DetailCard title="Taxes Amount by Title" onExpand={() => undefined}>
         <CategoryPieChart data={AMOUNT_SLICES} />
