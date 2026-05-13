@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Switcher, Toggle } from '@david-richard/notify-ds'
-import { BottomSheet } from '../components/BottomSheet'
 import { ChevronLeftIcon } from '../icons'
 
 type DateMode = 'Day' | 'Week' | 'Month' | 'Custom'
@@ -36,9 +35,8 @@ const COMPARE_OPTIONS: PeriodOption[] = [
 ]
 
 type Props = {
-  open: boolean
   onDismiss: () => void
-  /** Optional confirm hook — called with current selection when sheet dismissed via confirm */
+  /** Optional confirm hook — called with current selection when applied */
   onApply?: (sel: {
     mode: DateMode
     period: string | null
@@ -47,14 +45,23 @@ type Props = {
   }) => void
 }
 
-export function FilterByDate({ open, onDismiss }: Props) {
+export function FilterByDate({ onDismiss }: Props) {
   const [mode, setMode] = useState<DateMode>('Day')
   const [period, setPeriod] = useState<string | null>('today')
   const [compareOn, setCompareOn] = useState(true)
   const [compare, setCompare] = useState<string | null>('previous-day')
 
   return (
-    <BottomSheet open={open} onDismiss={onDismiss} heightPercent={88}>
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#FFFFFF',
+        padding: '24px 24px 24px',
+        overflowY: 'auto',
+      }}
+    >
       <header
         style={{
           display: 'grid',
@@ -152,7 +159,7 @@ export function FilterByDate({ open, onDismiss }: Props) {
           name="compare-period"
         />
       )}
-    </BottomSheet>
+    </div>
   )
 }
 
