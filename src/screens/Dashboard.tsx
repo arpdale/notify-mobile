@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   BottomNav,
   BottomNavContainer,
+  Button,
   MetricTile,
   MetricTileGrid,
   Selector,
@@ -13,9 +14,18 @@ import {
   BoxIcon,
   CalendarIcon,
   DashboardIcon,
+  InfoCircleIcon,
   MenuIcon,
   StoreIcon,
 } from '../icons'
+import { EmptyState } from '../components/EmptyState'
+
+export type DashboardState = 'ready' | 'error'
+
+type Props = {
+  state?: DashboardState
+  onRefresh?: () => void
+}
 
 const TABS = ['Sales', 'Labor', 'Store', 'Product']
 
@@ -77,7 +87,7 @@ function TillsTile() {
   )
 }
 
-export function Dashboard() {
+export function Dashboard({ state = 'ready', onRefresh }: Props = {}) {
   const [tab, setTab] = useState('Sales')
   const [nav, setNav] = useState('dashboard')
 
@@ -162,7 +172,24 @@ export function Dashboard() {
           <TabBar tabs={TABS} value={tab} onValueChange={setTab} stretch />
         </div>
 
-        {tab === 'Sales' && (
+        {state === 'error' && (
+          <EmptyState
+            icon={<InfoCircleIcon size={48} />}
+            title="Something Went Wrong"
+            description="Try Refreshing"
+            action={
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={onRefresh}
+              >
+                Refresh
+              </Button>
+            }
+          />
+        )}
+
+        {state === 'ready' && tab === 'Sales' && (
           <MetricTileGrid cols={2}>
             <MetricTile
               label="Net Sales"
@@ -207,7 +234,7 @@ export function Dashboard() {
           </MetricTileGrid>
         )}
 
-        {tab !== 'Sales' && (
+        {state === 'ready' && tab !== 'Sales' && (
           <div
             style={{
               marginTop: 40,
