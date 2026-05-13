@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Button, TabBar } from '@david-richard/notify-ds'
 import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
-import { BellIcon, InfoCircleIcon } from '../icons'
+import { InfoCircleIcon } from '../icons'
+import { NotificationsBellButton } from '../components/NotificationsBellButton'
 import { AppBottomNav } from '../components/AppBottomNav'
 import { ContextBar } from '../components/ContextBar'
 import { EmptyState } from '../components/EmptyState'
@@ -94,32 +95,7 @@ export function Dashboard({
         }}
       >
         <img src={logoLockup} alt="Qu Notify" style={{ height: 22 }} />
-        <button
-          type="button"
-          aria-label="Notifications"
-          onClick={onNotifications}
-          style={{
-            position: 'relative',
-            border: 0,
-            background: 'transparent',
-            padding: 4,
-            cursor: 'pointer',
-            color: '#000',
-          }}
-        >
-          <BellIcon size={22} />
-          <span
-            style={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#EF2149',
-            }}
-          />
-        </button>
+        <NotificationsBellButton onClick={onNotifications} />
       </header>
 
       <ContextBar
