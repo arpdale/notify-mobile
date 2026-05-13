@@ -6,7 +6,15 @@ import { TwoStepVerification } from './screens/TwoStepVerification'
 import { ChooseNewPassword } from './screens/ChooseNewPassword'
 import { Tills } from './screens/Tills'
 import { CheckSearch } from './screens/CheckSearch'
-import { MenuOverlay } from './screens/MenuOverlay'
+import { MenuOverlay, type MenuItemId } from './screens/MenuOverlay'
+import { Forecast } from './screens/Forecast'
+import {
+  Analyze,
+  DigitalChannels,
+  KitchenIntelligence,
+  ProductTour,
+  Settings,
+} from './screens/menuTargets'
 import { EnableFaceId } from './screens/EnableFaceId'
 import { ThanksgivingFeast } from './screens/ThanksgivingFeast'
 import { Splash } from './screens/Splash'
@@ -77,7 +85,7 @@ function DetailFallback() {
 }
 
 /** Routes that occupy the base layer of the app. These swap instantly
- *  (no animation) — auth flow + bottom-nav homes. */
+ *  (no animation) — auth flow + bottom-nav homes + menu destinations. */
 type BaseRoute =
   | 'splash'
   | 'sign-in'
@@ -89,17 +97,38 @@ type BaseRoute =
   | 'dashboard-error'
   | 'network-error'
   | 'inventory'
+  // Menu-target pages — each is reached by tapping a menu item, which
+  // closes the drawer with a slide-out animation while the new base
+  // mounts behind it.
+  | 'kitchen-intelligence'
+  | 'settings'
+  | 'forecast'
+  | 'digital-channels'
+  | 'checks-search'
+  | 'analyze'
+  | 'product-tour'
 
 /** Routes that push on top of the base layer with a right-to-left slide. */
 type PushRoute =
   | 'tills'
-  | 'check-search'
   | 'thanksgiving-feast'
   | 'net-sales'
   | 'payments'
   | 'discounts'
   | 'taxes'
   | 'service-charges'
+
+/** Map base routes back to the menu-item id so MenuOverlay can bold the
+ *  active page when reopened. */
+const ROUTE_TO_MENU_ITEM: Partial<Record<BaseRoute, MenuItemId>> = {
+  'kitchen-intelligence': 'kitchen-intelligence',
+  settings: 'settings',
+  forecast: 'forecast',
+  'digital-channels': 'digital-channels',
+  'checks-search': 'checks-search',
+  analyze: 'analyze',
+  'product-tour': 'product-tour',
+}
 
 const TILE_ROUTES: Partial<Record<DashboardTile, PushRoute>> = {
   'Net Sales': 'net-sales',
@@ -288,6 +317,62 @@ function App() {
         />
       )}
 
+      {/* Menu-target base routes — each is reached by tapping a menu link.
+       *  The transition is: target mounts behind the still-open menu, then
+       *  the menu's BottomSheet animates out (drawer slides down + scrim
+       *  fades) while the new base sits underneath. */}
+      {baseRoute === 'forecast' && (
+        <Forecast
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+          selectedStoreIds={selectedStoreIds}
+          onPickStore={openStoresPicker}
+        />
+      )}
+      {baseRoute === 'settings' && (
+        <Settings
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+        />
+      )}
+      {baseRoute === 'digital-channels' && (
+        <DigitalChannels
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+        />
+      )}
+      {baseRoute === 'kitchen-intelligence' && (
+        <KitchenIntelligence
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+        />
+      )}
+      {baseRoute === 'analyze' && (
+        <Analyze
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+        />
+      )}
+      {baseRoute === 'product-tour' && (
+        <ProductTour
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+        />
+      )}
+      {baseRoute === 'checks-search' && (
+        <CheckSearch
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+        />
+      )}
+
       {/* ── Push overlays (slide in from right over the base) ──── */}
       <SlideIn open={push === 'tills'} direction="right" onDismiss={closePush}>
         <Tills
@@ -297,13 +382,6 @@ function App() {
           onPickDate={openDateFilter}
           storeLabel={storeLabel}
         />
-      </SlideIn>
-      <SlideIn
-        open={push === 'check-search'}
-        direction="right"
-        onDismiss={closePush}
-      >
-        <CheckSearch onBack={closePush} />
       </SlideIn>
       <SlideIn
         open={push === 'thanksgiving-feast'}
@@ -391,10 +469,18 @@ function App() {
       <MenuOverlay
         open={menuOpen}
         onDismiss={() => setMenuOpen(false)}
-        onCheckSearch={() => {
-          setMenuOpen(false)
-          setPush('check-search')
-        }}
+        current={ROUTE_TO_MENU_ITEM[baseRoute]}
+        // Each menu link calls goto() — the target base route mounts behind
+        // the still-open drawer, and the drawer animates out simultaneously.
+        // This matches the production app's "target appears, menu peels away"
+        // transition.
+        onKitchenIntelligence={() => goto('kitchen-intelligence')}
+        onSettings={() => goto('settings')}
+        onForecast={() => goto('forecast')}
+        onDigitalChannels={() => goto('digital-channels')}
+        onChecksSearch={() => goto('checks-search')}
+        onAnalyze={() => goto('analyze')}
+        onProductTour={() => goto('product-tour')}
         onLogOut={() => goto('sign-in')}
       />
       <Notifications
