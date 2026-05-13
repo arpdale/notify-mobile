@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 type Props = {
   open: boolean
+  /** Called when the scrim is tapped or Escape is pressed. */
   onDismiss?: () => void
   children: ReactNode
   /** Height of the sheet as % of viewport (default 80) */
@@ -14,6 +15,15 @@ export function BottomSheet({
   children,
   heightPercent = 80,
 }: Props) {
+  useEffect(() => {
+    if (!open || !onDismiss) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onDismiss()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onDismiss])
+
   if (!open) return null
   return (
     <div

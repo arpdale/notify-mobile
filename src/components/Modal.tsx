@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 type Props = {
   open: boolean
-  /** Called when the scrim is tapped. Omit to disable scrim-dismiss. */
+  /** Called when the scrim is tapped or Escape is pressed. Omit to disable both. */
   onDismiss?: () => void
   children: ReactNode
   /**
@@ -13,6 +13,15 @@ type Props = {
 }
 
 export function Modal({ open, onDismiss, children, variant = 'card' }: Props) {
+  useEffect(() => {
+    if (!open || !onDismiss) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onDismiss()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onDismiss])
+
   if (!open) return null
   return (
     <div

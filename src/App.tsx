@@ -14,6 +14,7 @@ import { Splash } from './screens/Splash'
 import { NewVersionAvailable } from './screens/NewVersionAvailable'
 import { NetworkError } from './screens/NetworkError'
 import { Notifications } from './screens/Notifications'
+import { Inventory } from './screens/Inventory'
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
 // own chunk, off the auth + dashboard critical path.
@@ -65,6 +66,7 @@ type Route =
   | 'dashboard'
   | 'dashboard-error'
   | 'network-error'
+  | 'inventory'
   | 'tills'
   | 'check-search'
   | 'thanksgiving-feast'
@@ -202,7 +204,27 @@ function App() {
         <>
           <Dashboard
             onMenu={() => setMenuOpen(true)}
+            onInventory={() => goto('inventory')}
             onTileClick={onTileClick}
+            onNotifications={() => setNotificationsOpen(true)}
+          />
+          <MenuOverlay
+            open={menuOpen}
+            onDismiss={() => setMenuOpen(false)}
+            onCheckSearch={() => goto('check-search')}
+            onLogOut={() => goto('sign-in')}
+          />
+          <Notifications
+            open={notificationsOpen}
+            onDismiss={() => setNotificationsOpen(false)}
+          />
+        </>
+      )}
+      {route === 'inventory' && (
+        <>
+          <Inventory
+            onDashboard={() => goto('dashboard')}
+            onMenu={() => setMenuOpen(true)}
             onNotifications={() => setNotificationsOpen(true)}
           />
           <MenuOverlay

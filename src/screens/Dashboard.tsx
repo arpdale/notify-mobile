@@ -1,12 +1,8 @@
-import { useState } from 'react'
-import {
-  BottomNav,
-  BottomNavContainer,
-  Button,
-  TabBar,
-} from '@david-richard/notify-ds'
+import { useEffect, useState } from 'react'
+import { Button, TabBar } from '@david-richard/notify-ds'
 import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
-import { BellIcon, BoxIcon, DashboardIcon, InfoCircleIcon, MenuIcon } from '../icons'
+import { BellIcon, InfoCircleIcon } from '../icons'
+import { AppBottomNav } from '../components/AppBottomNav'
 import { ContextBar } from '../components/ContextBar'
 import { EmptyState } from '../components/EmptyState'
 import { Toast } from '../components/Toast'
@@ -40,6 +36,8 @@ type Props = {
   initialStoreSubTab?: StoreSubTab
   /** Called when the bottom-nav "Menu" item is selected */
   onMenu?: () => void
+  /** Called when the bottom-nav "Inventory" item is selected */
+  onInventory?: () => void
   /** Called when a Sales tab metric tile is tapped */
   onTileClick?: (tile: DashboardTile) => void
   /** Called when the header bell icon is tapped */
@@ -48,12 +46,6 @@ type Props = {
 
 const TABS = ['Sales', 'Labor', 'Store', 'Product']
 
-const NAV_ITEMS = [
-  { value: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-  { value: 'inventory', label: 'Inventory', icon: <BoxIcon /> },
-  { value: 'menu', label: 'Menu', icon: <MenuIcon /> },
-]
-
 export function Dashboard({
   state = 'ready',
   onRefresh,
@@ -61,11 +53,20 @@ export function Dashboard({
   initialTab = 'Sales',
   initialStoreSubTab,
   onMenu,
+  onInventory,
   onTileClick,
   onNotifications,
 }: Props = {}) {
   const [tab, setTab] = useState<string>(initialTab)
-  const [nav, setNav] = useState('dashboard')
+  // Initial-mount loading skeleton. Real auth + API integration replaces
+  // this timer with a query state in a later tier; the skeleton ships now
+  // so the perceived load matches what users will see in production.
+  const [loading, setLoading] = useState(state === 'ready')
+  useEffect(() => {
+    if (state !== 'ready') return
+    const t = setTimeout(() => setLoading(false), 600)
+    return () => clearTimeout(t)
+  }, [state])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -138,7 +139,7 @@ export function Dashboard({
         )}
 
         {state === 'ready' && tab === 'Sales' && (
-          <SalesView onTileClick={onTileClick} />
+          <SalesView loading={loading} onTileClick={onTileClick} />
         )}
 
         {state === 'ready' && tab === 'Store' && (
@@ -162,19 +163,14 @@ export function Dashboard({
       {errorMessage ? (
         <Toast message={errorMessage} variant="error" position="attached" />
       ) : (
-        <BottomNavContainer>
-          <BottomNav
-            items={NAV_ITEMS}
-            value={nav}
-            onValueChange={(v) => {
-              if (v === 'menu') {
-                onMenu?.()
-              } else {
-                setNav(v)
-              }
-            }}
-          />
-        </BottomNavContainer>
+        <AppBottomNav
+          value="dashboard"
+          onNavigate={(v) => {
+            if (v === 'menu') onMenu?.()
+            else if (v === 'inventory') onInventory?.()
+            // 'dashboard' is already current
+          }}
+        />
       )}
     </div>
   )
