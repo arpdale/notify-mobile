@@ -7,6 +7,7 @@ import { ContextBar } from '../components/ContextBar'
 import { EmptyState } from '../components/EmptyState'
 import { Toast } from '../components/Toast'
 import { SalesView } from './dashboard/SalesView'
+import { LaborView } from './dashboard/LaborView'
 import { StoreView } from './dashboard/StoreView'
 
 export type DashboardState = 'ready' | 'error'
@@ -158,11 +159,15 @@ export function Dashboard({
           <SalesView loading={loading} onTileClick={onTileClick} />
         )}
 
+        {state === 'ready' && tab === 'Labor' && (
+          <LaborView loading={loading} />
+        )}
+
         {state === 'ready' && tab === 'Store' && (
           <StoreView initialSubTab={initialStoreSubTab} />
         )}
 
-        {state === 'ready' && (tab === 'Labor' || tab === 'Product') && (
+        {state === 'ready' && tab === 'Product' && (
           <div
             style={{
               marginTop: 40,
@@ -171,7 +176,7 @@ export function Dashboard({
               color: '#6B7280',
             }}
           >
-            {tab} view — coming soon.
+            Product view — coming soon.
           </div>
         )}
       </div>
