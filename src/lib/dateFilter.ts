@@ -160,16 +160,6 @@ export function resolveCompare(
       const e = shiftYears(primary.end, -1)
       return { start: s, end: e }
     }
-    case 'same-day-last-year': {
-      // Same weekday in the same calendar week-of-year, last year — find the
-      // closest weekday match to the original day-of-week.
-      const s = shiftYears(primary.start, -1)
-      const targetDow = primary.start.getDay()
-      let diff = (targetDow - s.getDay() + 7) % 7
-      if (diff > 3) diff -= 7 // pick the closer side
-      const adjusted = addDays(s, diff)
-      return { start: adjusted, end: addDays(adjusted, len) }
-    }
     case 'previous-week': {
       const s = addDays(primary.start, -7)
       return { start: s, end: addDays(primary.end, -7) }
@@ -254,13 +244,6 @@ export function compareOptions(mode: DateMode, primary: Range): PeriodOption[] {
       const prevDay = addDays(primary.start, -1)
       const sdLW = addDays(primary.start, -7)
       const sdtLY = shiftYears(primary.start, -1)
-      const sdLY = (() => {
-        const s = shiftYears(primary.start, -1)
-        const targetDow = primary.start.getDay()
-        let diff = (targetDow - s.getDay() + 7) % 7
-        if (diff > 3) diff -= 7
-        return addDays(s, diff)
-      })()
       return [
         { id: 'previous-day', label: 'Previous Day', sub: `(${formatDate(prevDay)})` },
         {
@@ -272,11 +255,6 @@ export function compareOptions(mode: DateMode, primary: Range): PeriodOption[] {
           id: 'same-date-last-year',
           label: 'Same Date Last Year',
           sub: `(${formatDate(sdtLY)})`,
-        },
-        {
-          id: 'same-day-last-year',
-          label: 'Same Day Last Year',
-          sub: `(${formatDate(sdLY)})`,
         },
       ]
     }
