@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Button, InputField } from '@david-richard/notify-ds'
-import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
-import { ChevronLeftIcon } from '../icons'
+import { AuthShell } from '../components/AuthShell'
 import { CodeInput } from '../components/CodeInput'
 import { Toast } from '../components/Toast'
 
@@ -34,62 +33,40 @@ export function ChooseNewPassword({
     next === confirm
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
-        background: '#FFFFFF',
-        padding: '56px 24px 24px',
-        position: 'relative',
-      }}
+    <AuthShell
+      onBack={onBack}
+      heading="Choose a New Password"
+      description={
+        <>
+          Enter the 6-digit verification code sent to [{emailHint}], then create
+          your new password.
+        </>
+      }
+      requiredHint="*Required Field"
+      cta={
+        <Button
+          variant="primary"
+          size="lg"
+          state={canSubmit ? 'active' : 'inactive'}
+          disabled={!canSubmit}
+          onClick={() => onSubmit(code)}
+        >
+          Save And Continue
+        </Button>
+      }
+      supportHint={
+        <>
+          Didn't get the code?
+          <br />
+          Check your junk folder, or try again
+          <br />
+          with a different username
+        </>
+      }
+      overlay={
+        errorMessage ? <Toast message={errorMessage} variant="error" /> : null
+      }
     >
-      <button
-        type="button"
-        onClick={onBack}
-        style={{
-          alignSelf: 'flex-start',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: 0,
-          border: 0,
-          background: 'transparent',
-          color: '#000',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          fontWeight: 500,
-          cursor: 'pointer',
-        }}
-      >
-        <ChevronLeftIcon size={18} />
-        <span style={{ textDecoration: 'underline' }}>Back to sign in</span>
-      </button>
-
-      <h1
-        style={{
-          margin: '24px 0 12px',
-          fontFamily: "'Red Hat Text', 'Inter', sans-serif",
-          fontSize: 26,
-          fontWeight: 500,
-          color: '#000',
-        }}
-      >
-        Choose a New Password
-      </h1>
-      <p
-        style={{
-          margin: '0 0 24px',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          color: '#6B7280',
-          lineHeight: 1.5,
-        }}
-      >
-        Enter the 6-digit verification code sent to [{emailHint}], then create
-        your new password.
-      </p>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label
@@ -129,74 +106,6 @@ export function ChooseNewPassword({
           onChange={(e) => setConfirm(e.target.value)}
         />
       </div>
-
-      <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6B7280' }}>
-        *Required Field
-      </p>
-
-      <div
-        style={{
-          marginTop: 24,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        <Button
-          variant="primary"
-          size="lg"
-          state={canSubmit ? 'active' : 'inactive'}
-          disabled={!canSubmit}
-          onClick={() => onSubmit(code)}
-        >
-          Save And Continue
-        </Button>
-      </div>
-
-      <p
-        style={{
-          margin: '20px 0 0',
-          textAlign: 'center',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          color: '#6B7280',
-          lineHeight: 1.5,
-        }}
-      >
-        Didn't get the code?
-        <br />
-        Check your junk folder, or try again
-        <br />
-        with a different username
-      </p>
-
-      <div
-        style={{
-          marginTop: 'auto',
-          paddingTop: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 14,
-            color: '#000',
-          }}
-        >
-          <span>Powered by</span>
-          <img src={logoQu} alt="Qu" style={{ height: 18 }} />
-        </div>
-        <span style={{ fontSize: 11, color: '#9CA3AF' }}>
-          Version 3.6.222-build. 1483
-        </span>
-      </div>
-
-      {errorMessage ? <Toast message={errorMessage} variant="error" /> : null}
-    </div>
+    </AuthShell>
   )
 }

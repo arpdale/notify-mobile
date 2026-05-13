@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Button, InputField } from '@david-richard/notify-ds'
-import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
-import { ChevronLeftIcon } from '../icons'
+import { AuthShell } from '../components/AuthShell'
 
 type Props = {
   onBack: () => void
@@ -13,80 +12,12 @@ export function ResetPassword({ onBack, onSendCode }: Props) {
   const canSubmit = username.trim().length > 0
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
-        background: '#FFFFFF',
-        padding: '56px 24px 24px',
-      }}
-    >
-      <button
-        type="button"
-        onClick={onBack}
-        style={{
-          alignSelf: 'flex-start',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: 0,
-          border: 0,
-          background: 'transparent',
-          color: '#000',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          fontWeight: 500,
-          cursor: 'pointer',
-        }}
-      >
-        <ChevronLeftIcon size={18} />
-        <span style={{ textDecoration: 'underline' }}>Back to sign in</span>
-      </button>
-
-      <h1
-        style={{
-          margin: '24px 0 12px',
-          fontFamily: "'Red Hat Text', 'Inter', sans-serif",
-          fontSize: 26,
-          fontWeight: 500,
-          color: '#000',
-        }}
-      >
-        Reset Your Password
-      </h1>
-      <p
-        style={{
-          margin: '0 0 24px',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          color: '#6B7280',
-          lineHeight: 1.5,
-        }}
-      >
-        Enter your username and we'll send a verification code to the email
-        linked to your account.
-      </p>
-
-      <InputField
-        label="Username"
-        required
-        type="default"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-
-      <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6B7280' }}>
-        *Required Field
-      </p>
-
-      <div
-        style={{
-          marginTop: 24,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
+    <AuthShell
+      onBack={onBack}
+      heading="Reset Your Password"
+      description="Enter your username and we'll send a verification code to the email linked to your account."
+      requiredHint="*Required Field"
+      cta={
         <Button
           variant="primary"
           size="lg"
@@ -96,49 +27,22 @@ export function ResetPassword({ onBack, onSendCode }: Props) {
         >
           Send Code
         </Button>
-      </div>
-
-      <p
-        style={{
-          margin: '20px 0 0',
-          textAlign: 'center',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          color: '#6B7280',
-          lineHeight: 1.5,
-        }}
-      >
-        Don't remember your username?
-        <br />
-        Contact Support
-      </p>
-
-      <div
-        style={{
-          marginTop: 'auto',
-          paddingTop: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 14,
-            color: '#000',
-          }}
-        >
-          <span>Powered by</span>
-          <img src={logoQu} alt="Qu" style={{ height: 18 }} />
-        </div>
-        <span style={{ fontSize: 11, color: '#9CA3AF' }}>
-          Version 3.6.222-build. 1483
-        </span>
-      </div>
-    </div>
+      }
+      supportHint={
+        <>
+          Don't remember your username?
+          <br />
+          Contact Support
+        </>
+      }
+    >
+      <InputField
+        label="Username"
+        required
+        type="default"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+    </AuthShell>
   )
 }
