@@ -33,19 +33,32 @@ export function SlideIn({
 }: Props) {
   const [phase, setPhase] = useState<Phase>(open ? 'entered' : 'exited')
 
+  // Effect 1: react to `open` changes, flip into entering / exiting.
+  // Does NOT schedule the next phase — that has to wait for the entering
+  // render to commit + paint, otherwise React can batch both updates and
+  // the browser never sees a transform change to animate from.
   useEffect(() => {
     if (open && (phase === 'exited' || phase === 'exiting')) {
       setPhase('entering')
-      // Two RAFs to ensure the off-state has actually painted before flipping.
-      const id = requestAnimationFrame(() =>
-        requestAnimationFrame(() => setPhase('entered')),
-      )
-      return () => cancelAnimationFrame(id)
-    }
-    if (!open && (phase === 'entered' || phase === 'entering')) {
+    } else if (!open && (phase === 'entered' || phase === 'entering')) {
       setPhase('exiting')
     }
   }, [open, phase])
+
+  // Effect 2: after the entering render commits + paints (useEffect runs
+  // post-paint), wait one more frame, then flip to entered so the browser
+  // sees a real transform-property change and animates the transition.
+  useEffect(() => {
+    if (phase !== 'entering') return
+    let raf2: number | null = null
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setPhase('entered'))
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      if (raf2 !== null) cancelAnimationFrame(raf2)
+    }
+  }, [phase])
 
   useEffect(() => {
     if (!open || !onDismiss) return
