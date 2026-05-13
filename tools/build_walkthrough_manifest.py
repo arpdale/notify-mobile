@@ -141,6 +141,19 @@ def parse_crop(value: str) -> tuple[int, int, int, int]:
     return tuple(parts)  # type: ignore[return-value]
 
 
+def parse_frames(value: str) -> set[int]:
+    """Parse e.g. "7-22" or "1,3,7-22" into a set of 1-indexed frame numbers."""
+    selected: set[int] = set()
+    for token in value.split(","):
+        token = token.strip()
+        if "-" in token:
+            lo, hi = token.split("-", 1)
+            selected.update(range(int(lo), int(hi) + 1))
+        elif token:
+            selected.add(int(token))
+    return selected
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--video", type=Path, required=True)
@@ -152,6 +165,17 @@ def main() -> int:
                     help="Explicit x,y,w,h crop in video pixel coords")
     ap.add_argument("--pre", type=float, default=4.0)
     ap.add_argument("--post", type=float, default=6.0)
+    ap.add_argument(
+        "--frames",
+        type=parse_frames,
+        default=None,
+        help="Restrict manifest to e.g. '7-22' or '1,3,7-22' (1-indexed)",
+    )
+    ap.add_argument(
+        "--skip-extract",
+        action="store_true",
+        help="Skip ffmpeg extraction (use existing frames/ and scene_log.txt)",
+    )
     args = ap.parse_args()
 
     out = args.out.expanduser().resolve()
@@ -159,7 +183,13 @@ def main() -> int:
     frames_dir = out / "frames"
     cropped_dir = out / "frames-cropped"
 
-    scene_log = extract_frames(args.video.expanduser(), args.scene, frames_dir)
+    if args.skip_extract:
+        scene_log = out / "scene_log.txt"
+        if not scene_log.exists():
+            print(f"missing {scene_log}; cannot skip extraction", file=sys.stderr)
+            return 1
+    else:
+        scene_log = extract_frames(args.video.expanduser(), args.scene, frames_dir)
     times = parse_scene_log(scene_log)
     cues = parse_vtt(args.vtt.expanduser())
 
@@ -228,9 +258,26 @@ def main() -> int:
         f"Scene-detect threshold: `{args.scene}`. "
         "Each entry shows the cropped phone view; the matching full frame is linked below it.\n"
     )
+    if args.frames:
+        sorted_sel = sorted(args.frames)
+        ranges: list[str] = []
+        run_lo = run_hi = sorted_sel[0]
+        for n in sorted_sel[1:]:
+            if n == run_hi + 1:
+                run_hi = n
+            else:
+                ranges.append(f"{run_lo}-{run_hi}" if run_lo != run_hi else f"{run_lo}")
+                run_lo = run_hi = n
+        ranges.append(f"{run_lo}-{run_hi}" if run_lo != run_hi else f"{run_lo}")
+        lines.append(
+            f"**Curated subset:** {', '.join(ranges)} "
+            f"({len(args.frames)} of {len(frame_paths)} frames)\n"
+        )
     lines.append("---\n")
 
-    for frame_path, t in zip(frame_paths, times):
+    for idx, (frame_path, t) in enumerate(zip(frame_paths, times), start=1):
+        if args.frames is not None and idx not in args.frames:
+            continue
         neighbors = neighbors_for(t, cues, args.pre, args.post)
         speakers = sorted({c[3] for c in neighbors if c[3]})
         speaker_str = ", ".join(speakers) if speakers else "—"
