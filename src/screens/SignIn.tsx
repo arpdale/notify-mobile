@@ -5,9 +5,10 @@ import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
 
 type Props = {
   onSignIn: () => void
+  onForgotPassword?: () => void
 }
 
-export function SignIn({ onSignIn }: Props) {
+export function SignIn({ onSignIn, onForgotPassword }: Props) {
   const [username, setUsername] = useState('myemail@gmail.com')
   const [password, setPassword] = useState('demo')
 
@@ -74,7 +75,10 @@ export function SignIn({ onSignIn }: Props) {
 
       <a
         href="#"
-        onClick={(e) => e.preventDefault()}
+        onClick={(e) => {
+          e.preventDefault()
+          onForgotPassword?.()
+        }}
         style={{
           alignSelf: 'flex-end',
           marginTop: 12,
