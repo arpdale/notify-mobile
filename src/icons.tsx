@@ -98,3 +98,23 @@ export function EyeIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function InfoCircleIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 7v6" />
+      <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+export function ArchiveXIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="m10 13 4 4M14 13l-4 4" />
+    </svg>
+  )
+}
