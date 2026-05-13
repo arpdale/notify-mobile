@@ -2,7 +2,19 @@ import type { ReactNode } from 'react'
 import { Badge } from '@david-richard/notify-ds'
 import { BottomSheet } from '../components/BottomSheet'
 
+/** Identifies which menu item maps to which destination — used to bold the
+ *  currently-active page in the menu list and to wire each item's onClick. */
+export type MenuItemId =
+  | 'kitchen-intelligence'
+  | 'settings'
+  | 'forecast'
+  | 'digital-channels'
+  | 'checks-search'
+  | 'analyze'
+  | 'product-tour'
+
 type MenuItem = {
+  id: MenuItemId
   label: string
   onClick?: () => void
   badge?: ReactNode
@@ -16,8 +28,15 @@ const TEXT_SECONDARY = 'rgba(255,255,255,0.55)'
 type Props = {
   open: boolean
   onDismiss: () => void
-  onCheckSearch?: () => void
+  /** Id of the currently-active page — that item renders bold in the list. */
+  current?: MenuItemId
   onKitchenIntelligence?: () => void
+  onSettings?: () => void
+  onForecast?: () => void
+  onDigitalChannels?: () => void
+  onChecksSearch?: () => void
+  onAnalyze?: () => void
+  onProductTour?: () => void
   onLogOut?: () => void
   version?: string
 }
@@ -25,24 +44,34 @@ type Props = {
 export function MenuOverlay({
   open,
   onDismiss,
-  onCheckSearch,
+  current,
   onKitchenIntelligence,
+  onSettings,
+  onForecast,
+  onDigitalChannels,
+  onChecksSearch,
+  onAnalyze,
+  onProductTour,
   onLogOut,
   version = 'Version 3.6.222',
 }: Props) {
   const tools: MenuItem[] = [
     {
+      id: 'kitchen-intelligence',
       label: 'Kitchen Intelligence',
       onClick: onKitchenIntelligence,
       badge: <Badge variant="brand">NEW</Badge>,
     },
-    { label: 'Settings' },
-    { label: 'Forecast' },
-    { label: 'Digital Channels' },
-    { label: 'Checks Search', onClick: onCheckSearch },
+    { id: 'settings', label: 'Settings', onClick: onSettings },
+    { id: 'forecast', label: 'Forecast', onClick: onForecast },
+    { id: 'digital-channels', label: 'Digital Channels', onClick: onDigitalChannels },
+    { id: 'checks-search', label: 'Checks Search', onClick: onChecksSearch },
   ]
 
-  const support: MenuItem[] = [{ label: 'Analyze' }, { label: 'Product Tour' }]
+  const support: MenuItem[] = [
+    { id: 'analyze', label: 'Analyze', onClick: onAnalyze },
+    { id: 'product-tour', label: 'Product Tour', onClick: onProductTour },
+  ]
 
   return (
     <BottomSheet
@@ -64,8 +93,8 @@ export function MenuOverlay({
           paddingBottom: 16,
         }}
       >
-        <MenuSection title="Tools" items={tools} />
-        <MenuSection title="Support" items={support} />
+        <MenuSection title="Tools" items={tools} current={current} />
+        <MenuSection title="Support" items={support} current={current} />
       </div>
 
       <div
@@ -111,7 +140,15 @@ export function MenuOverlay({
   )
 }
 
-function MenuSection({ title, items }: { title: string; items: MenuItem[] }) {
+function MenuSection({
+  title,
+  items,
+  current,
+}: {
+  title: string
+  items: MenuItem[]
+  current?: MenuItemId
+}) {
   return (
     <section>
       <h2
@@ -135,35 +172,38 @@ function MenuSection({ title, items }: { title: string; items: MenuItem[] }) {
           gap: 14,
         }}
       >
-        {items.map((item) => (
-          <li
-            key={item.label}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <button
-              type="button"
-              onClick={item.onClick}
+        {items.map((item) => {
+          const isActive = item.id === current
+          return (
+            <li
+              key={item.id}
               style={{
-                border: 0,
-                background: 'transparent',
-                padding: 0,
-                cursor: item.onClick ? 'pointer' : 'default',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 18,
-                fontWeight: 500,
-                color: TEXT_PRIMARY,
-                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
               }}
             >
-              {item.label}
-            </button>
-            {item.badge}
-          </li>
-        ))}
+              <button
+                type="button"
+                onClick={item.onClick}
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  padding: 0,
+                  cursor: item.onClick ? 'pointer' : 'default',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 18,
+                  fontWeight: isActive ? 700 : 500,
+                  color: TEXT_PRIMARY,
+                  textAlign: 'left',
+                }}
+              >
+                {item.label}
+              </button>
+              {item.badge}
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
