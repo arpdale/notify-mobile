@@ -24,6 +24,18 @@ export type DashboardState = 'ready' | 'error'
 export type DashboardTab = 'Sales' | 'Labor' | 'Store' | 'Product'
 export type StoreSubTab = 'Productivity' | 'Network' | 'Kitchen'
 
+export type DashboardTile =
+  | 'Net Sales'
+  | 'Checks'
+  | 'Payments'
+  | 'Average Check'
+  | 'Gross Sales'
+  | 'Discounts'
+  | 'Cash'
+  | 'Tills'
+  | 'Voids'
+  | 'Service Charges'
+
 type Props = {
   state?: DashboardState
   onRefresh?: () => void
@@ -35,6 +47,8 @@ type Props = {
   initialStoreSubTab?: StoreSubTab
   /** Called when the bottom-nav "Menu" item is selected */
   onMenu?: () => void
+  /** Called when a Sales tab metric tile is tapped */
+  onTileClick?: (tile: DashboardTile) => void
 }
 
 const TABS = ['Sales', 'Labor', 'Store', 'Product']
@@ -45,11 +59,15 @@ const NAV_ITEMS = [
   { value: 'menu', label: 'Menu', icon: <MenuIcon /> },
 ]
 
-function TillsTile() {
+function TillsTile({ onClick }: { onClick?: () => void }) {
   return (
     <div
       role="button"
       tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onClick?.()
+      }}
       style={{
         background: '#FFFFFF',
         borderRadius: 16,
@@ -104,6 +122,7 @@ export function Dashboard({
   initialTab = 'Sales',
   initialStoreSubTab,
   onMenu,
+  onTileClick,
 }: Props = {}) {
   const [tab, setTab] = useState<string>(initialTab)
   const [nav, setNav] = useState('dashboard')
@@ -188,41 +207,60 @@ export function Dashboard({
               value="$345.58"
               trend={11.8}
               trendLabel="$304.78"
+              onClick={() => onTileClick?.('Net Sales')}
             />
             <MetricTile
               label="Checks"
               value="11"
               trend={18.1}
               trendLabel="9"
+              onClick={() => onTileClick?.('Checks')}
             />
             <MetricTile
               label="Payments"
               value="$378.40"
               trend={11.1}
               trendLabel="$336.28"
+              onClick={() => onTileClick?.('Payments')}
             />
             <MetricTile
               label="Average Check"
               value="$33.86"
               trend={7.7}
               trendLabel="$31.42"
+              onClick={() => onTileClick?.('Average Check')}
             />
             <MetricTile
               label="Gross Sales"
               value="$368.40"
               trend={-11.4}
               trendLabel="$326.28"
+              onClick={() => onTileClick?.('Gross Sales')}
             />
             <MetricTile
               label="Discounts"
               value="$22.40"
               trend={14.2}
               trendLabel="$19.20"
+              onClick={() => onTileClick?.('Discounts')}
             />
-            <MetricTile label="Cash" value="$44.91" trendLabel="$44.91" />
-            <TillsTile />
-            <MetricTile label="Voids" value="$8.00" />
-            <MetricTile label="Service Charges" value="$10.00" />
+            <MetricTile
+              label="Cash"
+              value="$44.91"
+              trendLabel="$44.91"
+              onClick={() => onTileClick?.('Cash')}
+            />
+            <TillsTile onClick={() => onTileClick?.('Tills')} />
+            <MetricTile
+              label="Voids"
+              value="$8.00"
+              onClick={() => onTileClick?.('Voids')}
+            />
+            <MetricTile
+              label="Service Charges"
+              value="$10.00"
+              onClick={() => onTileClick?.('Service Charges')}
+            />
           </MetricTileGrid>
         )}
 
