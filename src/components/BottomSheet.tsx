@@ -54,6 +54,17 @@ export function BottomSheet({
     }
   }, [phase])
 
+  // Phase 3: when exiting starts, schedule the unmount after the transition
+  // duration. transitionEnd is unreliable for compound animations like this
+  // — the scrim's opacity transition and the sheet's transform transition
+  // each fire their own events, and whichever lands first would unmount the
+  // sheet mid-slide.
+  useEffect(() => {
+    if (phase !== 'exiting') return
+    const t = window.setTimeout(() => setPhase('exited'), DURATION_MS + 20)
+    return () => window.clearTimeout(t)
+  }, [phase])
+
   // Esc dismiss while open.
   useEffect(() => {
     if (!open || !onDismiss) return
@@ -82,11 +93,6 @@ export function BottomSheet({
         background: 'rgba(0,0,0,0.45)',
         opacity: isOffScreen ? 0 : 1,
         transition: `opacity ${DURATION_MS}ms ${EASE}`,
-        pointerEvents: phase === 'entered' ? 'auto' : 'auto',
-      }}
-      onTransitionEnd={(e) => {
-        if (e.target !== e.currentTarget) return
-        if (phase === 'exiting') setPhase('exited')
       }}
     >
       <div
