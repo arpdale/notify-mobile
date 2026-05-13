@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { PhoneFrame } from './PhoneFrame'
 import { SignIn } from './screens/SignIn'
 import { Dashboard, type DashboardTile } from './screens/Dashboard'
@@ -10,14 +10,50 @@ import { CheckSearch } from './screens/CheckSearch'
 import { MenuOverlay } from './screens/MenuOverlay'
 import { EnableFaceId } from './screens/EnableFaceId'
 import { ThanksgivingFeast } from './screens/ThanksgivingFeast'
-import { NetSales } from './screens/NetSales'
-import { Payments } from './screens/Payments'
-import { Discounts } from './screens/Discounts'
-import { Taxes } from './screens/Taxes'
-import { ServiceCharges } from './screens/ServiceCharges'
 import { Splash } from './screens/Splash'
 import { NewVersionAvailable } from './screens/NewVersionAvailable'
 import { NetworkError } from './screens/NetworkError'
+import { Notifications } from './screens/Notifications'
+
+// Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
+// own chunk, off the auth + dashboard critical path.
+const NetSales = lazy(() =>
+  import('./screens/NetSales').then((m) => ({ default: m.NetSales })),
+)
+const Payments = lazy(() =>
+  import('./screens/Payments').then((m) => ({ default: m.Payments })),
+)
+const Discounts = lazy(() =>
+  import('./screens/Discounts').then((m) => ({ default: m.Discounts })),
+)
+const Taxes = lazy(() => import('./screens/Taxes').then((m) => ({ default: m.Taxes })))
+const ServiceCharges = lazy(() =>
+  import('./screens/ServiceCharges').then((m) => ({ default: m.ServiceCharges })),
+)
+
+function DetailFallback() {
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-surface-app, #F4F4F4)',
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13,
+          color: '#9CA3AF',
+        }}
+      >
+        Loading…
+      </span>
+    </div>
+  )
+}
 
 type Route =
   | 'splash'
@@ -64,6 +100,7 @@ const SPLASH_VERSION_PROMPT_DELAY_MS = 1200
 function App() {
   const [route, setRoute] = useState<Route>('splash')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [versionPromptOpen, setVersionPromptOpen] = useState(false)
   const [chooseNewPasswordError, setChooseNewPasswordError] = useState<
     string | undefined
@@ -80,6 +117,7 @@ function App() {
 
   const goto = (r: Route) => {
     setMenuOpen(false)
+    setNotificationsOpen(false)
     setVersionPromptOpen(false)
     setRoute(r)
   }
@@ -162,12 +200,20 @@ function App() {
 
       {route === 'dashboard' && (
         <>
-          <Dashboard onMenu={() => setMenuOpen(true)} onTileClick={onTileClick} />
+          <Dashboard
+            onMenu={() => setMenuOpen(true)}
+            onTileClick={onTileClick}
+            onNotifications={() => setNotificationsOpen(true)}
+          />
           <MenuOverlay
             open={menuOpen}
             onDismiss={() => setMenuOpen(false)}
             onCheckSearch={() => goto('check-search')}
             onLogOut={() => goto('sign-in')}
+          />
+          <Notifications
+            open={notificationsOpen}
+            onDismiss={() => setNotificationsOpen(false)}
           />
         </>
       )}
@@ -189,12 +235,20 @@ function App() {
       {route === 'thanksgiving-feast' && (
         <ThanksgivingFeast onBack={() => goto('dashboard')} />
       )}
-      {route === 'net-sales' && <NetSales onBack={() => goto('dashboard')} />}
-      {route === 'payments' && <Payments onBack={() => goto('dashboard')} />}
-      {route === 'discounts' && <Discounts onBack={() => goto('dashboard')} />}
-      {route === 'taxes' && <Taxes onBack={() => goto('dashboard')} />}
-      {route === 'service-charges' && (
-        <ServiceCharges onBack={() => goto('dashboard')} />
+      {(route === 'net-sales' ||
+        route === 'payments' ||
+        route === 'discounts' ||
+        route === 'taxes' ||
+        route === 'service-charges') && (
+        <Suspense fallback={<DetailFallback />}>
+          {route === 'net-sales' && <NetSales onBack={() => goto('dashboard')} />}
+          {route === 'payments' && <Payments onBack={() => goto('dashboard')} />}
+          {route === 'discounts' && <Discounts onBack={() => goto('dashboard')} />}
+          {route === 'taxes' && <Taxes onBack={() => goto('dashboard')} />}
+          {route === 'service-charges' && (
+            <ServiceCharges onBack={() => goto('dashboard')} />
+          )}
+        </Suspense>
       )}
     </PhoneFrame>
   )

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@david-richard/notify-ds'
-import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
-import { ChevronLeftIcon } from '../icons'
+import { AuthShell } from '../components/AuthShell'
 import { CodeInput } from '../components/CodeInput'
 
 const CODE_LENGTH = 6
@@ -17,60 +16,30 @@ export function TwoStepVerification({ onBack, onContinue }: Props) {
   const canSubmit = code.length === CODE_LENGTH
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
-        background: '#FFFFFF',
-        padding: '56px 24px 24px',
-      }}
+    <AuthShell
+      onBack={onBack}
+      heading="Two Step Verification"
+      description="Enter the 6-digit security code from your authenticator app"
+      requiredHint="*Required Field"
+      cta={
+        <Button
+          variant="primary"
+          size="lg"
+          state={canSubmit ? 'active' : 'inactive'}
+          disabled={!canSubmit}
+          onClick={() => onContinue(code)}
+        >
+          Continue
+        </Button>
+      }
+      supportHint={
+        <>
+          Having trouble signing in?
+          <br />
+          Contact Support
+        </>
+      }
     >
-      <button
-        type="button"
-        onClick={onBack}
-        style={{
-          alignSelf: 'flex-start',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: 0,
-          border: 0,
-          background: 'transparent',
-          color: '#000',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          fontWeight: 500,
-          cursor: 'pointer',
-        }}
-      >
-        <ChevronLeftIcon size={18} />
-        <span style={{ textDecoration: 'underline' }}>Back to sign in</span>
-      </button>
-
-      <h1
-        style={{
-          margin: '24px 0 12px',
-          fontFamily: "'Red Hat Text', 'Inter', sans-serif",
-          fontSize: 26,
-          fontWeight: 500,
-          color: '#000',
-        }}
-      >
-        Two Step Verification
-      </h1>
-      <p
-        style={{
-          margin: '0 0 24px',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          color: '#6B7280',
-          lineHeight: 1.5,
-        }}
-      >
-        Enter the 6-digit security code from your authenticator app
-      </p>
-
       <label
         style={{
           display: 'block',
@@ -90,70 +59,6 @@ export function TwoStepVerification({ onBack, onContinue }: Props) {
         autoFocus
         ariaLabel="Verification code digit"
       />
-
-      <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6B7280' }}>
-        *Required Field
-      </p>
-
-      <div
-        style={{
-          marginTop: 24,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        <Button
-          variant="primary"
-          size="lg"
-          state={canSubmit ? 'active' : 'inactive'}
-          disabled={!canSubmit}
-          onClick={() => onContinue(code)}
-        >
-          Continue
-        </Button>
-      </div>
-
-      <p
-        style={{
-          margin: '20px 0 0',
-          textAlign: 'center',
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14,
-          color: '#6B7280',
-          lineHeight: 1.5,
-        }}
-      >
-        Having trouble signing in?
-        <br />
-        Contact Support
-      </p>
-
-      <div
-        style={{
-          marginTop: 'auto',
-          paddingTop: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 14,
-            color: '#000',
-          }}
-        >
-          <span>Powered by</span>
-          <img src={logoQu} alt="Qu" style={{ height: 18 }} />
-        </div>
-        <span style={{ fontSize: 11, color: '#9CA3AF' }}>
-          Version 3.6.222-build. 1483
-        </span>
-      </div>
-    </div>
+    </AuthShell>
   )
 }
