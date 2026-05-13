@@ -9,15 +9,17 @@ type Props = {
   onBack: () => void
   /** Fires with the entered code so callers can branch on demo / error codes */
   onContinue: (code: string) => void
+  onDevSkip?: () => void
 }
 
-export function TwoStepVerification({ onBack, onContinue }: Props) {
+export function TwoStepVerification({ onBack, onContinue, onDevSkip }: Props) {
   const [code, setCode] = useState('')
   const canSubmit = code.length === CODE_LENGTH
 
   return (
     <AuthShell
       onBack={onBack}
+      onDevSkip={onDevSkip}
       heading="Two Step Verification"
       description="Enter the 6-digit security code from your authenticator app"
       requiredHint="*Required Field"

@@ -180,6 +180,7 @@ function App() {
         <SignIn
           onSignIn={() => goto('two-step-verification')}
           onForgotPassword={() => goto('reset-password')}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
       {baseRoute === 'reset-password' && (
@@ -189,12 +190,14 @@ function App() {
             setChooseNewPasswordError(undefined)
             goto('choose-new-password')
           }}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
       {baseRoute === 'two-step-verification' && (
         <TwoStepVerification
           onBack={() => goto('sign-in')}
           onContinue={handleTwoFactor}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
       {baseRoute === 'choose-new-password' && (
@@ -202,11 +205,12 @@ function App() {
           onBack={() => goto('sign-in')}
           onSubmit={handleChooseNewPassword}
           errorMessage={chooseNewPasswordError}
+          onDevSkip={() => goto('dashboard')}
         />
       )}
       {baseRoute === 'enable-face-id' && (
         <>
-          <SignIn onSignIn={() => undefined} />
+          <SignIn onSignIn={() => undefined} onDevSkip={() => goto('dashboard')} />
           <EnableFaceId
             open
             onEnable={() => goto('dashboard')}
@@ -242,7 +246,10 @@ function App() {
         />
       )}
       {baseRoute === 'network-error' && (
-        <NetworkError onRefresh={() => goto('sign-in')} />
+        <NetworkError
+          onRefresh={() => goto('sign-in')}
+          onDevSkip={() => goto('dashboard')}
+        />
       )}
 
       {/* ── Push overlays (slide in from right over the base) ──── */}

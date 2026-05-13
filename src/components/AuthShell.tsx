@@ -23,6 +23,8 @@ type Props = {
   overlay?: ReactNode
   /** Version string shown above the build label in the footer */
   version?: string
+  /** Dev shortcut — clicking the Powered-by-Qu lockup fires this. */
+  onDevSkip?: () => void
 }
 
 export function AuthShell({
@@ -36,6 +38,7 @@ export function AuthShell({
   supportHint,
   overlay,
   version = 'Version 3.6.222-build. 1483',
+  onDevSkip,
 }: Props) {
   return (
     <div
@@ -132,18 +135,27 @@ export function AuthShell({
           gap: 6,
         }}
       >
-        <div
+        <button
+          type="button"
+          onClick={onDevSkip}
+          disabled={!onDevSkip}
+          title={onDevSkip ? 'Skip to dashboard (dev)' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
             fontSize: 14,
             color: '#000',
+            border: 0,
+            background: 'transparent',
+            padding: 0,
+            cursor: onDevSkip ? 'pointer' : 'default',
+            font: 'inherit',
           }}
         >
           <span>Powered by</span>
           <img src={logoQu} alt="Qu" style={{ height: 18 }} />
-        </div>
+        </button>
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>{version}</span>
       </div>
 
