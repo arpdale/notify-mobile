@@ -1,8 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
 import {
   CartesianGrid,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -41,10 +41,33 @@ export function CompareLineChart({
   formatY = defaultFormatY,
   height = 220,
 }: Props) {
+  // Recharts' ResponsiveContainer fires a noisy "width(-1)" warning on its
+  // first render before ResizeObserver reports — passing minWidth/minHeight
+  // doesn't suppress it. We measure the container ourselves and only render
+  // LineChart once we have a real width.
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  const [width, setWidth] = useState(0)
+
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0
+      if (w > 0) setWidth(Math.round(w))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   return (
-    <div style={{ width: '100%', height }}>
-      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+    <div ref={wrapRef} style={{ width: '100%', height }}>
+      {width > 0 ? (
+        <LineChart
+          width={width}
+          height={height}
+          data={data}
+          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+        >
           <CartesianGrid stroke={CHART_COLORS.grid} vertical={false} />
           <XAxis
             dataKey={xKey}
@@ -95,7 +118,7 @@ export function CompareLineChart({
             isAnimationActive={false}
           />
         </LineChart>
-      </ResponsiveContainer>
+      ) : null}
     </div>
   )
 }

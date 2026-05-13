@@ -1,4 +1,4 @@
-import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
+import { Cell, Pie, PieChart } from 'recharts'
 import { sliceColor } from './colors'
 
 export type PieSlice = {
@@ -28,28 +28,27 @@ export function CategoryPieChart({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <div style={{ width: size, height: size }}>
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius="100%"
-              startAngle={90}
-              endAngle={-270}
-              stroke="none"
-              isAnimationActive={false}
-            >
-              {data.map((s, i) => (
-                <Cell key={s.name} fill={s.color ?? sliceColor(i)} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
+      {/* PieChart gets explicit numeric width/height — no ResponsiveContainer
+       *  needed since size is fixed. Avoids the recharts "width(-1)" first-
+       *  measurement warning entirely. */}
+      <PieChart width={size} height={size}>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius="100%"
+          startAngle={90}
+          endAngle={-270}
+          stroke="none"
+          isAnimationActive={false}
+        >
+          {data.map((s, i) => (
+            <Cell key={s.name} fill={s.color ?? sliceColor(i)} />
+          ))}
+        </Pie>
+      </PieChart>
       <ul
         style={{
           listStyle: 'none',
