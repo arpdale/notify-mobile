@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { Button, InputField } from '@david-richard/notify-ds'
+import { Button } from '@david-richard/notify-ds'
 import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
 import { ChevronLeftIcon } from '../icons'
+import { CodeInput } from '../components/CodeInput'
+
+const CODE_LENGTH = 6
 
 type Props = {
   onBack: () => void
@@ -10,7 +13,7 @@ type Props = {
 
 export function TwoStepVerification({ onBack, onContinue }: Props) {
   const [code, setCode] = useState('')
-  const canSubmit = code.trim().length > 0
+  const canSubmit = code.length === CODE_LENGTH
 
   return (
     <div
@@ -67,15 +70,24 @@ export function TwoStepVerification({ onBack, onContinue }: Props) {
         Enter the 6-digit security code from your authenticator app
       </p>
 
-      <InputField
-        label="Code"
-        required
-        type="default"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        maxLength={6}
+      <label
+        style={{
+          display: 'block',
+          marginBottom: 8,
+          fontFamily: "'Red Hat Text', 'Inter', sans-serif",
+          fontSize: 18,
+          fontWeight: 500,
+          color: '#000',
+        }}
+      >
+        Code<span style={{ color: '#EF2149' }}>*</span>
+      </label>
+      <CodeInput
         value={code}
-        onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
+        onChange={setCode}
+        length={CODE_LENGTH}
+        autoFocus
+        ariaLabel="Verification code digit"
       />
 
       <p style={{ margin: '12px 0 0', fontSize: 12, color: '#6B7280' }}>
