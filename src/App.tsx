@@ -460,7 +460,10 @@ function App() {
             onPickStores={openStoresPicker}
             onPickDate={openDateFilter}
             storeLabel={storeLabel}
-          dateLabel={dateLabel}
+            dateLabel={dateLabel}
+            selectedStoreIds={selectedStoreIds}
+            dateFilter={dateFilter}
+            today={today}
           />
         </Suspense>
       </SlideIn>
