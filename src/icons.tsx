@@ -198,3 +198,19 @@ export function ArrowUpIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 4v16M5 13l7 7 7-7" />
+    </svg>
+  )
+}
+
+export function MinusIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 12h14" />
+    </svg>
+  )
+}
