@@ -22,6 +22,7 @@ import { NewVersionAvailable } from './screens/NewVersionAvailable'
 import { NetworkError } from './screens/NetworkError'
 import { Notifications } from './screens/Notifications'
 import { Inventory } from './screens/Inventory'
+import { Leaderboards } from './screens/Leaderboards'
 import { StoresPicker } from './screens/StoresPicker'
 import { FilterByDate } from './screens/FilterByDate'
 import { SlideIn } from './components/SlideIn'
@@ -126,6 +127,7 @@ type BaseRoute =
   | 'forecast'
   | 'digital-channels'
   | 'checks-search'
+  | 'leaderboards'
   | 'analyze'
   | 'product-tour'
 
@@ -147,6 +149,7 @@ const ROUTE_TO_MENU_ITEM: Partial<Record<BaseRoute, MenuItemId>> = {
   forecast: 'forecast',
   'digital-channels': 'digital-channels',
   'checks-search': 'checks-search',
+  leaderboards: 'leaderboards',
   analyze: 'analyze',
   'product-tour': 'product-tour',
 }
@@ -330,6 +333,9 @@ function App() {
           onPickDate={openDateFilter}
           storeLabel={storeLabel}
           dateLabel={dateLabel}
+          selectedStoreIds={selectedStoreIds}
+          dateFilter={dateFilter}
+          today={today}
         />
       )}
       {baseRoute === 'inventory' && (
@@ -412,6 +418,20 @@ function App() {
           onDashboard={() => goto('dashboard')}
           onInventory={() => goto('inventory')}
           onMenu={() => setMenuOpen(true)}
+        />
+      )}
+      {baseRoute === 'leaderboards' && (
+        <Leaderboards
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+          selectedStoreIds={selectedStoreIds}
+          dateFilter={dateFilter}
+          today={today}
+          storeLabel={storeLabel}
+          dateLabel={dateLabel}
+          onPickStores={openStoresPicker}
+          onPickDate={openDateFilter}
         />
       )}
 
@@ -532,6 +552,12 @@ function App() {
         onForecast={() => goto('forecast')}
         onDigitalChannels={() => goto('digital-channels')}
         onChecksSearch={() => goto('checks-search')}
+        // Leaderboards is only meaningful with 2+ stores selected. When the
+        // user has just one store the comparison view collapses to a single
+        // row — hide the entry rather than render a degenerate page.
+        onLeaderboards={
+          selectedStoreIds.size > 1 ? () => goto('leaderboards') : undefined
+        }
         onAnalyze={() => goto('analyze')}
         onProductTour={() => goto('product-tour')}
         onLogOut={() => goto('sign-in')}

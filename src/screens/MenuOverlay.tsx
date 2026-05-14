@@ -10,6 +10,7 @@ export type MenuItemId =
   | 'forecast'
   | 'digital-channels'
   | 'checks-search'
+  | 'leaderboards'
   | 'analyze'
   | 'product-tour'
 
@@ -35,6 +36,9 @@ type Props = {
   onForecast?: () => void
   onDigitalChannels?: () => void
   onChecksSearch?: () => void
+  /** Leaderboards is only shown when a handler is provided. App.tsx omits
+   *  this prop for single-store users so the row disappears entirely. */
+  onLeaderboards?: () => void
   onAnalyze?: () => void
   onProductTour?: () => void
   onLogOut?: () => void
@@ -50,6 +54,7 @@ export function MenuOverlay({
   onForecast,
   onDigitalChannels,
   onChecksSearch,
+  onLeaderboards,
   onAnalyze,
   onProductTour,
   onLogOut,
@@ -66,6 +71,9 @@ export function MenuOverlay({
     { id: 'forecast', label: 'Forecast', onClick: onForecast },
     { id: 'digital-channels', label: 'Digital Channels', onClick: onDigitalChannels },
     { id: 'checks-search', label: 'Checks Search', onClick: onChecksSearch },
+    ...(onLeaderboards
+      ? [{ id: 'leaderboards' as const, label: 'Leaderboards', onClick: onLeaderboards }]
+      : []),
   ]
 
   const support: MenuItem[] = [

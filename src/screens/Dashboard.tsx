@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button, TabBar } from '@david-richard/notify-ds'
 import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
 import { InfoCircleIcon } from '../icons'
@@ -10,6 +10,7 @@ import { Toast } from '../components/Toast'
 import { SalesView } from './dashboard/SalesView'
 import { LaborView } from './dashboard/LaborView'
 import { StoreView } from './dashboard/StoreView'
+import { DEFAULT_FILTER, type DateFilter } from '../lib/dateFilter'
 
 export type DashboardState = 'ready' | 'error'
 export type DashboardTab = 'Sales' | 'Labor' | 'Store' | 'Product'
@@ -51,6 +52,11 @@ type Props = {
   /** Overrides for the context bar selector labels */
   storeLabel?: string
   dateLabel?: string
+  /** Live inputs driving tile data — Sales/Labor views recompute when any
+   *  of these change. Optional so the error state can mount without them. */
+  selectedStoreIds?: Set<string>
+  dateFilter?: DateFilter
+  today?: Date
 }
 
 const TABS = ['Sales', 'Labor', 'Store', 'Product']
@@ -69,17 +75,18 @@ export function Dashboard({
   onPickDate,
   storeLabel = 'StoreName',
   dateLabel = '01/06/26',
+  selectedStoreIds,
+  dateFilter,
+  today,
 }: Props = {}) {
   const [tab, setTab] = useState<string>(initialTab)
-  // Initial-mount loading skeleton. Real auth + API integration replaces
-  // this timer with a query state in a later tier; the skeleton ships now
-  // so the perceived load matches what users will see in production.
-  const [loading, setLoading] = useState(state === 'ready')
-  useEffect(() => {
-    if (state !== 'ready') return
-    const t = setTimeout(() => setLoading(false), 600)
-    return () => clearTimeout(t)
-  }, [state])
+  // Each view (SalesView / LaborView) now owns its own data lifecycle via
+  // useEffect against the selectors — the old 600ms skeleton timer is gone.
+  // Defaults below cover the error-state mount where data props aren't
+  // threaded; the views won't render in that case anyway.
+  const effectiveStoreIds = selectedStoreIds ?? new Set<string>()
+  const effectiveFilter = dateFilter ?? DEFAULT_FILTER
+  const effectiveToday = today ?? new Date()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -132,11 +139,20 @@ export function Dashboard({
         )}
 
         {state === 'ready' && tab === 'Sales' && (
-          <SalesView loading={loading} onTileClick={onTileClick} />
+          <SalesView
+            onTileClick={onTileClick}
+            selectedStoreIds={effectiveStoreIds}
+            dateFilter={effectiveFilter}
+            today={effectiveToday}
+          />
         )}
 
         {state === 'ready' && tab === 'Labor' && (
-          <LaborView loading={loading} />
+          <LaborView
+            selectedStoreIds={effectiveStoreIds}
+            dateFilter={effectiveFilter}
+            today={effectiveToday}
+          />
         )}
 
         {state === 'ready' && tab === 'Store' && (

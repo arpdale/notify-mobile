@@ -1,58 +1,129 @@
+import { useEffect, useState } from 'react'
 import { MetricTile, MetricTileGrid } from '@david-richard/notify-ds'
 import type { DashboardTile } from '../Dashboard'
-
-type TileData = {
-  label: DashboardTile
-  value: string
-  trend?: number
-  trendLabel?: string
-}
-
-const TILES: TileData[] = [
-  { label: 'Net Sales', value: '$345.58', trend: 11.8, trendLabel: '$304.78' },
-  { label: 'Checks', value: '11', trend: 18.1, trendLabel: '9' },
-  { label: 'Payments', value: '$378.40', trend: 11.1, trendLabel: '$336.28' },
-  { label: 'Average Check', value: '$33.86', trend: 7.7, trendLabel: '$31.42' },
-  { label: 'Gross Sales', value: '$368.40', trend: -11.4, trendLabel: '$326.28' },
-  { label: 'Discounts', value: '$22.40', trend: 14.2, trendLabel: '$19.20' },
-  { label: 'Cash', value: '$44.91', trendLabel: '$44.91' },
-  // Tills slot is rendered out-of-band by TillsTile in the 8th grid cell.
-  { label: 'Voids', value: '$8.00' },
-  { label: 'Service Charges', value: '$10.00' },
-]
+import {
+  defaultCompareFor,
+  resolveCompare,
+  resolvePrimary,
+  toIsoDateString,
+  type DateFilter,
+} from '../../lib/dateFilter'
+import {
+  getSalesTiles,
+  listTills,
+  trendPct,
+  type SalesTiles,
+} from '../../lib/data/selectors'
 
 type Props = {
   onTileClick?: (tile: DashboardTile) => void
-  /** When true, every tile renders the DS skeleton state */
-  loading?: boolean
+  selectedStoreIds: Set<string>
+  dateFilter: DateFilter
+  today: Date
 }
 
-export function SalesView({ onTileClick, loading }: Props) {
+type TillCounts = { open: number; closed: number; reconciled: number }
+
+const fmtMoney = (n: number) =>
+  n.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+const fmtInt = (n: number) => Math.round(n).toLocaleString('en-US')
+
+type TileKey = keyof SalesTiles
+type TileDef = {
+  label: DashboardTile
+  key: TileKey
+  format: (n: number) => string
+}
+
+// Order matches the PM-walkthrough Sales frame. Tills occupies grid cell 8
+// (between Cash and Voids) and is rendered out-of-band.
+const TILE_DEFS_TOP: TileDef[] = [
+  { label: 'Net Sales',     key: 'netSales',     format: fmtMoney },
+  { label: 'Checks',        key: 'checks',       format: fmtInt   },
+  { label: 'Payments',      key: 'payments',     format: fmtMoney },
+  { label: 'Average Check', key: 'averageCheck', format: fmtMoney },
+  { label: 'Gross Sales',   key: 'grossSales',   format: fmtMoney },
+  { label: 'Discounts',     key: 'discounts',    format: fmtMoney },
+  { label: 'Cash',          key: 'cash',         format: fmtMoney },
+]
+const TILE_DEFS_BOTTOM: TileDef[] = [
+  { label: 'Voids',           key: 'voids',          format: fmtMoney },
+  { label: 'Service Charges', key: 'serviceCharges', format: fmtMoney },
+]
+
+export function SalesView({ onTileClick, selectedStoreIds, dateFilter, today }: Props) {
+  const [tiles, setTiles] = useState<SalesTiles | null>(null)
+  const [tillCounts, setTillCounts] = useState<TillCounts | null>(null)
+
+  useEffect(() => {
+    const primary = resolvePrimary(dateFilter, today)
+    // Show trends regardless of the user's Compare toggle — the dashboard
+    // always renders a delta. When Compare is off, fall back to the natural
+    // prior for the current mode (prev-day / prev-week / prev-month).
+    const compareId = dateFilter.compareOn
+      ? dateFilter.compare
+      : defaultCompareFor(dateFilter.mode)
+    const prior =
+      resolveCompare(
+        { ...dateFilter, compareOn: true, compare: compareId },
+        primary,
+      ) ?? undefined
+
+    let cancelled = false
+    Promise.all([
+      getSalesTiles(primary, { storeIds: selectedStoreIds, priorRange: prior }),
+      listTills({
+        storeIds: selectedStoreIds,
+        from: `${toIsoDateString(primary.start)}T00:00:00Z`,
+        to: `${toIsoDateString(primary.end)}T23:59:59Z`,
+      }),
+    ]).then(([t, tills]) => {
+      if (cancelled) return
+      setTiles(t)
+      const counts: TillCounts = { open: 0, closed: 0, reconciled: 0 }
+      for (const x of tills) counts[x.status]++
+      setTillCounts(counts)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [dateFilter, today, selectedStoreIds])
+
+  const loading = tiles === null
+
+  const renderTile = (def: TileDef) => {
+    const pair = tiles?.[def.key]
+    const value = pair ? def.format(pair.value) : ''
+    const trend = pair ? trendPct(pair.value, pair.prior) ?? undefined : undefined
+    const trendLabel =
+      pair && pair.prior !== null ? def.format(pair.prior) : undefined
+    return (
+      <MetricTile
+        key={def.label}
+        label={def.label}
+        value={loading ? '' : value}
+        trend={loading ? undefined : trend}
+        trendLabel={loading ? undefined : trendLabel}
+        loading={loading}
+        onClick={() => onTileClick?.(def.label)}
+      />
+    )
+  }
+
   return (
     <MetricTileGrid cols={2}>
-      {TILES.slice(0, 7).map((t) => (
-        <MetricTile
-          key={t.label}
-          label={t.label}
-          value={loading ? '' : t.value}
-          trend={loading ? undefined : t.trend}
-          trendLabel={loading ? undefined : t.trendLabel}
-          loading={loading}
-          onClick={() => onTileClick?.(t.label)}
-        />
-      ))}
-      <TillsTile loading={loading} onClick={() => onTileClick?.('Tills')} />
-      {TILES.slice(7).map((t) => (
-        <MetricTile
-          key={t.label}
-          label={t.label}
-          value={loading ? '' : t.value}
-          trend={loading ? undefined : t.trend}
-          trendLabel={loading ? undefined : t.trendLabel}
-          loading={loading}
-          onClick={() => onTileClick?.(t.label)}
-        />
-      ))}
+      {TILE_DEFS_TOP.map(renderTile)}
+      <TillsTile
+        loading={loading}
+        counts={tillCounts}
+        onClick={() => onTileClick?.('Tills')}
+      />
+      {TILE_DEFS_BOTTOM.map(renderTile)}
     </MetricTileGrid>
   )
 }
@@ -66,9 +137,11 @@ export function SalesView({ onTileClick, loading }: Props) {
 function TillsTile({
   onClick,
   loading,
+  counts,
 }: {
   onClick?: () => void
   loading?: boolean
+  counts: TillCounts | null
 }) {
   return (
     <div
@@ -104,7 +177,7 @@ function TillsTile({
         <span>Tills</span>
         {!loading && <span aria-hidden>›</span>}
       </div>
-      {loading ? (
+      {loading || !counts ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <SkeletonLine width="48%" />
           <SkeletonLine width="56%" />
@@ -121,13 +194,14 @@ function TillsTile({
           }}
         >
           <span>
-            Open: <strong style={{ fontWeight: 600 }}>0</strong>
+            Open: <strong style={{ fontWeight: 600 }}>{counts.open}</strong>
           </span>
           <span>
-            Closed: <strong style={{ fontWeight: 600 }}>1</strong>
+            Closed: <strong style={{ fontWeight: 600 }}>{counts.closed}</strong>
           </span>
           <span>
-            Reconciled: <strong style={{ fontWeight: 600 }}>0</strong>
+            Reconciled:{' '}
+            <strong style={{ fontWeight: 600 }}>{counts.reconciled}</strong>
           </span>
         </div>
       )}
