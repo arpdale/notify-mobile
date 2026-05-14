@@ -5,6 +5,7 @@ import { CHART_COLORS } from '../components/charts/colors'
 import {
   addDays,
   defaultCompareFor,
+  formatDate,
   resolveCompare,
   resolvePrimary,
   toIsoDateString,
@@ -53,7 +54,7 @@ export function NetSales({
   // explicit compare option when Compare is on, and falls back to the
   // mode's natural prior (prev-day / prev-week / prev-month) otherwise so
   // we always draw two lines.
-  const { primaryDate, comparisonDate } = useMemo(() => {
+  const { primaryDate, comparisonDate, primaryLabel, comparisonLabel } = useMemo(() => {
     const primary = resolvePrimary(dateFilter, today)
     const compareFilter =
       dateFilter.compareOn && dateFilter.compare
@@ -64,11 +65,15 @@ export function NetSales({
             compare: defaultCompareFor(dateFilter.mode),
           }
     const compareRange = resolveCompare(compareFilter, primary)
+    const compareEnd = compareRange ? compareRange.end : addDays(primary.end, -1)
     return {
       primaryDate: toIsoDateString(primary.end),
-      comparisonDate: toIsoDateString(
-        compareRange ? compareRange.end : addDays(primary.end, -1),
-      ),
+      comparisonDate: toIsoDateString(compareEnd),
+      // Labels are the actual dates being compared. The pill at the top of
+      // the screen already tells the user which range and which compare
+      // option are active; the legend just needs to identify the two lines.
+      primaryLabel: formatDate(primary.end),
+      comparisonLabel: formatDate(compareEnd),
     }
   }, [dateFilter, today])
 
@@ -94,17 +99,21 @@ export function NetSales({
       dateLabel={dateLabel}
     >
       <DetailCard title="Net Sales by hour" onExpand={() => undefined}>
-        <Legend />
+        <Legend primaryLabel={primaryLabel} comparisonLabel={comparisonLabel} />
         <CompareLineChart
           data={rows}
           xKey="hour"
           primaryKey="today"
           comparisonKey="previous"
-          primaryLabel="Today"
-          comparisonLabel="Previous Day"
+          primaryLabel={primaryLabel}
+          comparisonLabel={comparisonLabel}
         />
       </DetailCard>
-      <HourTable rows={rows} />
+      <HourTable
+        rows={rows}
+        primaryLabel={primaryLabel}
+        comparisonLabel={comparisonLabel}
+      />
     </DetailShell>
   )
 }
@@ -118,7 +127,13 @@ function toHourRow(p: HourPoint): HourRow {
   }
 }
 
-function Legend() {
+function Legend({
+  primaryLabel,
+  comparisonLabel,
+}: {
+  primaryLabel: string
+  comparisonLabel: string
+}) {
   return (
     <div
       style={{
@@ -131,8 +146,8 @@ function Legend() {
         color: '#000',
       }}
     >
-      <LegendItem color={CHART_COLORS.today} label="Today" />
-      <LegendItem color={CHART_COLORS.previous} label="Previous Day" />
+      <LegendItem color={CHART_COLORS.today} label={primaryLabel} />
+      <LegendItem color={CHART_COLORS.previous} label={comparisonLabel} />
     </div>
   )
 }
@@ -152,9 +167,13 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 function HourTable({
   rows,
   highlightIndex,
+  primaryLabel,
+  comparisonLabel,
 }: {
   rows: HourRow[]
   highlightIndex?: number
+  primaryLabel: string
+  comparisonLabel: string
 }) {
   return (
     <div
@@ -176,8 +195,8 @@ function HourTable({
         }}
       >
         <span>Hour</span>
-        <span>Today</span>
-        <span>Previous Day</span>
+        <span>{primaryLabel}</span>
+        <span>{comparisonLabel}</span>
         <span style={{ textAlign: 'right' }}>%</span>
       </div>
       {rows.map((r, i) => {
