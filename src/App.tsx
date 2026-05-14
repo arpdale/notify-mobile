@@ -333,6 +333,9 @@ function App() {
           onPickDate={openDateFilter}
           storeLabel={storeLabel}
           dateLabel={dateLabel}
+          selectedStoreIds={selectedStoreIds}
+          dateFilter={dateFilter}
+          today={today}
         />
       )}
       {baseRoute === 'inventory' && (
