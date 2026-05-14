@@ -6,11 +6,13 @@ import { MenuTargetPage } from '../components/MenuTargetPage'
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from '../icons'
 import {
   addDays,
+  resolveCompare,
   resolvePrimary,
   type DateFilter,
 } from '../lib/dateFilter'
 import {
   getStoreLeaderboard,
+  trendPct,
   type LeaderboardMetric,
   type LeaderboardRow,
 } from '../lib/data/selectors'
@@ -40,13 +42,21 @@ const LABEL_TO_METRIC: Record<string, LeaderboardMetric> = {
   'Avg Check': 'averageCheck',
 }
 
-function formatMoney(n: number): string {
-  return n.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+/** Compact dollars — keeps cells narrow enough that we can fit a 6-column
+ *  compare table on a phone width without the store-name column collapsing
+ *  to nothing. Drops cents at four figures, switches to thousands at five+. */
+function fmtCompactMoney(n: number): string {
+  if (n >= 100000) return `$${Math.round(n / 1000).toLocaleString('en-US')}k`
+  if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`
+  return `$${n.toFixed(2)}`
+}
+
+/** Format the trend-% number for the delta column. Returns null when there's
+ *  no meaningful comparison (no prior, or prior was zero). */
+function fmtPct(n: number | null): string {
+  if (n === null) return '—'
+  const sign = n > 0 ? '+' : ''
+  return `${sign}${n.toFixed(1)}%`
 }
 
 export function Leaderboards({
@@ -64,19 +74,27 @@ export function Leaderboards({
   const [metric, setMetric] = useState<LeaderboardMetric>('netSales')
   const [rows, setRows] = useState<LeaderboardRow[]>([])
 
-  // Primary range = whatever the user selected in the global date pill.
-  // Prior range = same shape shifted back by one day so we can show
-  // "rank vs yesterday" movement regardless of mode (Day/Week/Month).
-  // When the shift collapses the range, fall back to no prior.
+  // Two prior-range strategies depending on whether the user has Compare on.
+  //
+  //  - Compare ON  → prior comes from resolveCompare() against the user's
+  //                  chosen compare option (Previous Week, Same Day Last
+  //                  Year, etc.). The UI gains Prior / Now / Δ% columns.
+  //  - Compare OFF → prior is the same range shifted back one day, so we
+  //                  can still render a rank-movement arrow. No prior-value
+  //                  column shown.
+  const compareOn = dateFilter.compareOn && Boolean(dateFilter.compare)
   const { primaryRange, priorRange } = useMemo(() => {
     const primary = resolvePrimary(dateFilter, today)
+    if (compareOn) {
+      return { primaryRange: primary, priorRange: resolveCompare(dateFilter, primary) }
+    }
     const priorEnd = addDays(primary.end, -1)
     const prior =
       priorEnd.getTime() >= primary.start.getTime()
         ? { start: primary.start, end: priorEnd }
         : null
     return { primaryRange: primary, priorRange: prior }
-  }, [dateFilter, today])
+  }, [dateFilter, today, compareOn])
 
   useEffect(() => {
     let cancelled = false
@@ -91,36 +109,9 @@ export function Leaderboards({
     }
   }, [metric, primaryRange, priorRange, selectedStoreIds])
 
-  const columns: DataTableColumn<LeaderboardRow>[] = [
-    {
-      key: 'rank',
-      header: '#',
-      width: '32px',
-      render: (r) => (
-        <span style={{ fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>
-          {r.rank}
-        </span>
-      ),
-    },
-    { key: 'storeName', header: 'Store', render: (r) => r.storeName },
-    {
-      key: 'value',
-      header: METRIC_LABELS[metric],
-      align: 'right',
-      render: (r) => (
-        <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
-          {formatMoney(r.value)}
-        </span>
-      ),
-    },
-    {
-      key: 'delta',
-      header: 'Δ',
-      align: 'right',
-      width: '64px',
-      render: (r) => <RankDelta delta={r.rankDelta} />,
-    },
-  ]
+  const columns = compareOn
+    ? buildCompareColumns()
+    : buildSimpleColumns(metric)
 
   return (
     <MenuTargetPage
@@ -155,6 +146,109 @@ export function Leaderboards({
         />
       )}
     </MenuTargetPage>
+  )
+}
+
+function buildSimpleColumns(metric: LeaderboardMetric): DataTableColumn<LeaderboardRow>[] {
+  return [
+    {
+      key: 'rank',
+      header: '#',
+      width: '24px',
+      render: (r) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>
+          {r.rank}
+        </span>
+      ),
+    },
+    {
+      key: 'storeName',
+      header: 'Store',
+      ellipsize: true,
+      render: (r) => r.storeName,
+    },
+    {
+      key: 'value',
+      header: METRIC_LABELS[metric],
+      align: 'right',
+      render: (r) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
+          {fmtCompactMoney(r.value)}
+        </span>
+      ),
+    },
+    {
+      key: 'rankDelta',
+      header: 'Δ',
+      align: 'right',
+      width: '48px',
+      render: (r) => <RankDelta delta={r.rankDelta} />,
+    },
+  ]
+}
+
+function buildCompareColumns(): DataTableColumn<LeaderboardRow>[] {
+  return [
+    {
+      key: 'rank',
+      header: '#',
+      width: '20px',
+      render: (r) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>
+          {r.rank}
+        </span>
+      ),
+    },
+    {
+      key: 'storeName',
+      header: 'Store',
+      ellipsize: true,
+      render: (r) => r.storeName,
+    },
+    {
+      key: 'priorValue',
+      header: 'Prior',
+      align: 'right',
+      render: (r) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums', color: '#6B7280' }}>
+          {r.priorValue === null ? '—' : fmtCompactMoney(r.priorValue)}
+        </span>
+      ),
+    },
+    {
+      key: 'value',
+      header: 'Now',
+      align: 'right',
+      render: (r) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
+          {fmtCompactMoney(r.value)}
+        </span>
+      ),
+    },
+    {
+      key: 'pctDelta',
+      header: 'Δ%',
+      align: 'right',
+      render: (r) => <PctDelta value={r.value} prior={r.priorValue} />,
+    },
+    {
+      key: 'rankDelta',
+      header: 'Rank',
+      align: 'right',
+      width: '40px',
+      render: (r) => <RankDelta delta={r.rankDelta} />,
+    },
+  ]
+}
+
+function PctDelta({ value, prior }: { value: number; prior: number | null }) {
+  const pct = trendPct(value, prior)
+  if (pct === null) return <span style={{ color: '#9CA3AF' }}>—</span>
+  const color = pct > 0 ? '#16A34A' : pct < 0 ? '#DC2626' : '#6B7280'
+  return (
+    <span style={{ color, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+      {fmtPct(pct)}
+    </span>
   )
 }
 

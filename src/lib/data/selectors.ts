@@ -94,6 +94,9 @@ export type LeaderboardRow = {
   storeName: string
   value: number
   rank: number
+  /** Null when no prior range was requested. 0 means "compared, but the
+   *  store had no data in the prior period" — distinct from null. */
+  priorValue: number | null
   priorRank: number | null
   rankDelta: number | null
 }
@@ -395,12 +398,17 @@ export async function getStoreLeaderboard(
   const storesById = new Map(STORES.map((s) => [s.id, s] as const))
 
   const rows: LeaderboardRow[] = [...primary.entries()].map(([storeId, p]) => {
-    const priorRank = prior?.get(storeId)?.rank ?? null
+    const priorEntry = prior?.get(storeId) ?? null
+    const priorRank = priorEntry?.rank ?? null
+    // priorValue is null only when no priorRange was passed at all. When a
+    // prior range was provided but the store had no data, return 0.
+    const priorValue = prior === null ? null : (priorEntry?.value ?? 0)
     return {
       storeId,
       storeName: storesById.get(storeId)?.name ?? storeId,
       value: p.value,
       rank: p.rank,
+      priorValue,
       priorRank,
       // Positive delta = moved up (smaller rank number). Null when no prior.
       rankDelta: priorRank === null ? null : priorRank - p.rank,

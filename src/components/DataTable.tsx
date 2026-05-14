@@ -12,6 +12,10 @@ export type DataTableColumn<T> = {
   render?: (row: T) => ReactNode
   /** Optional explicit width (px or fr); otherwise grid auto-sizes */
   width?: string
+  /** Truncate overflowing content with an ellipsis. Wraps the cell in a
+   *  minmax(0, …) track so the grid column can shrink below its content,
+   *  and adds the standard nowrap+overflow+ellipsis chain on the content. */
+  ellipsize?: boolean
 }
 
 type Props<T> = {
@@ -39,7 +43,13 @@ function SortGlyph({ direction }: { direction: 'asc' | 'desc' }) {
 
 export function DataTable<T>({ columns, rows, getRowKey, onRowClick }: Props<T>) {
   const gridTemplate = columns
-    .map((c) => c.width ?? (c.align === 'right' ? 'auto' : '1fr'))
+    .map((c) => {
+      const w = c.width ?? (c.align === 'right' ? 'auto' : '1fr')
+      // Grid tracks default to min-content sizing, which prevents ellipsis
+      // from kicking in. Wrap the track in minmax(0, …) only for columns
+      // that opt into ellipsizing so we don't change layout elsewhere.
+      return c.ellipsize ? `minmax(0, ${w})` : w
+    })
     .join(' ')
 
   return (
@@ -106,23 +116,41 @@ export function DataTable<T>({ columns, rows, getRowKey, onRowClick }: Props<T>)
             minHeight: 48,
           }}
         >
-          {columns.map((c) => (
-            <div
-              key={c.key}
-              role="cell"
-              style={{
-                textAlign: c.align ?? 'left',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
-                gap: 6,
-              }}
-            >
-              {c.render
-                ? c.render(row)
-                : String((row as Record<string, unknown>)[c.key] ?? '')}
-            </div>
-          ))}
+          {columns.map((c) => {
+            const content = c.render
+              ? c.render(row)
+              : String((row as Record<string, unknown>)[c.key] ?? '')
+            return (
+              <div
+                key={c.key}
+                role="cell"
+                style={{
+                  textAlign: c.align ?? 'left',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
+                  gap: 6,
+                  minWidth: 0,
+                }}
+              >
+                {c.ellipsize ? (
+                  <span
+                    style={{
+                      display: 'block',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {content}
+                  </span>
+                ) : (
+                  content
+                )}
+              </div>
+            )
+          })}
         </div>
       ))}
     </div>
