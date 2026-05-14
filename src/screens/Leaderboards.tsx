@@ -3,7 +3,6 @@ import { Switcher } from '@david-richard/notify-ds'
 import { ContextBar } from '../components/ContextBar'
 import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { MenuTargetPage } from '../components/MenuTargetPage'
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from '../icons'
 import {
   addDays,
   resolveCompare,
@@ -177,13 +176,6 @@ function buildSimpleColumns(metric: LeaderboardMetric): DataTableColumn<Leaderbo
         </span>
       ),
     },
-    {
-      key: 'rankDelta',
-      header: 'Δ',
-      align: 'right',
-      width: '48px',
-      render: (r) => <RankDelta delta={r.rankDelta} />,
-    },
   ]
 }
 
@@ -231,13 +223,6 @@ function buildCompareColumns(): DataTableColumn<LeaderboardRow>[] {
       align: 'right',
       render: (r) => <PctDelta value={r.value} prior={r.priorValue} />,
     },
-    {
-      key: 'rankDelta',
-      header: 'Rank',
-      align: 'right',
-      width: '40px',
-      render: (r) => <RankDelta delta={r.rankDelta} />,
-    },
   ]
 }
 
@@ -248,29 +233,6 @@ function PctDelta({ value, prior }: { value: number; prior: number | null }) {
   return (
     <span style={{ color, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
       {fmtPct(pct)}
-    </span>
-  )
-}
-
-function RankDelta({ delta }: { delta: number | null }) {
-  if (delta === null) {
-    return <span style={{ color: '#9CA3AF' }}>—</span>
-  }
-  if (delta === 0) {
-    return (
-      <span style={{ color: '#9CA3AF', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-        <MinusIcon size={14} />
-      </span>
-    )
-  }
-  const up = delta > 0
-  const color = up ? '#16A34A' : '#DC2626'
-  return (
-    <span style={{ color, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-      {up ? <ArrowUpIcon size={14} /> : <ArrowDownIcon size={14} />}
-      <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-        {Math.abs(delta)}
-      </span>
     </span>
   )
 }
