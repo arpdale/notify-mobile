@@ -1,7 +1,7 @@
 import { Button } from '@david-richard/notify-ds'
 import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
 import { EmptyState } from '../components/EmptyState'
-import { InfoCircleIcon } from '../icons'
+import { Info } from '@david-richard/notify-ds/icons'
 
 type Props = {
   onRefresh: () => void
@@ -19,7 +19,7 @@ export function NetworkError({ onRefresh, onDevSkip }: Props) {
       }}
     >
       <EmptyState
-        icon={<InfoCircleIcon size={48} />}
+        icon={<Info size={48} />}
         title="Please check your network"
         description="and try again"
         action={

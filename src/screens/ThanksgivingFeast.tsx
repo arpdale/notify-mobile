@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { TabBar } from '@david-richard/notify-ds'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { ArrowUpIcon } from '../icons'
+import { ArrowUp } from '@david-richard/notify-ds/icons'
 
 const TABS = ['Prices', 'Checks']
 
@@ -65,7 +65,7 @@ export function ThanksgivingFeast({ onBack }: Props) {
                   gap: 4,
                 }}
               >
-                <ArrowUpIcon size={14} />
+                <ArrowUp size={14} />
                 Quantity
               </button>
             </div>

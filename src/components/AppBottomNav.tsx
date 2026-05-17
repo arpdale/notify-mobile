@@ -3,14 +3,14 @@ import {
   BottomNavContainer,
   type NavItem,
 } from '@david-richard/notify-ds'
-import { BoxIcon, DashboardIcon, MenuIcon } from '../icons'
+import { Package, Dashboard, Menu } from '@david-richard/notify-ds/icons'
 
 export type AppNavValue = 'dashboard' | 'inventory' | 'menu'
 
 const NAV_ITEMS: NavItem[] = [
-  { value: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-  { value: 'inventory', label: 'Inventory', icon: <BoxIcon /> },
-  { value: 'menu', label: 'Menu', icon: <MenuIcon /> },
+  { value: 'dashboard', label: 'Dashboard', icon: <Dashboard /> },
+  { value: 'inventory', label: 'Inventory', icon: <Package /> },
+  { value: 'menu', label: 'Menu', icon: <Menu /> },
 ]
 
 type Props = {

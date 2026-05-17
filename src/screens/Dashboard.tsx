@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, TabBar } from '@david-richard/notify-ds'
 import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
-import { InfoCircleIcon } from '../icons'
+import { Info } from '@david-richard/notify-ds/icons'
 import { NotificationsBellButton } from '../components/NotificationsBellButton'
 import { AppBottomNav } from '../components/AppBottomNav'
 import { ContextBar } from '../components/ContextBar'
@@ -127,7 +127,7 @@ export function Dashboard({
 
         {state === 'error' && (
           <EmptyState
-            icon={<InfoCircleIcon size={48} />}
+            icon={<Info size={48} />}
             title="Something Went Wrong"
             description="Try Refreshing"
             action={

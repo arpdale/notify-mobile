@@ -1,5 +1,5 @@
 import { Radio, Switcher, Toggle } from '@david-richard/notify-ds'
-import { ChevronLeftIcon } from '../icons'
+import { ChevronLeft } from '@david-richard/notify-ds/icons'
 import {
   compareOptions,
   defaultCompareFor,
@@ -91,7 +91,7 @@ export function FilterByDate({ filter, onChange, today, onDismiss }: Props) {
             justifySelf: 'flex-start',
           }}
         >
-          <ChevronLeftIcon size={24} />
+          <ChevronLeft size={24} />
         </button>
         <h2
           style={{

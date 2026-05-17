@@ -3,7 +3,7 @@ import { Switcher } from '@david-richard/notify-ds'
 import { ContextBar } from '../components/ContextBar'
 import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { MenuTargetPage } from '../components/MenuTargetPage'
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from '../icons'
+import { ArrowDown, ArrowUp, Minus } from '@david-richard/notify-ds/icons'
 import {
   addDays,
   resolveCompare,
@@ -259,7 +259,7 @@ function RankDelta({ delta }: { delta: number | null }) {
   if (delta === 0) {
     return (
       <span style={{ color: '#9CA3AF', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-        <MinusIcon size={14} />
+        <Minus size={14} />
       </span>
     )
   }
@@ -267,7 +267,7 @@ function RankDelta({ delta }: { delta: number | null }) {
   const color = up ? '#16A34A' : '#DC2626'
   return (
     <span style={{ color, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-      {up ? <ArrowUpIcon size={14} /> : <ArrowDownIcon size={14} />}
+      {up ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
       <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
         {Math.abs(delta)}
       </span>

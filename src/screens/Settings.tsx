@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react'
 import { Toggle } from '@david-richard/notify-ds'
 import { MenuTargetPage } from '../components/MenuTargetPage'
-import { ChevronRightIcon } from '../icons'
+import { ChevronRight } from '@david-richard/notify-ds/icons'
 
 type Row = {
   label: string
@@ -174,7 +174,7 @@ function SettingsRow({ row }: { row: Row }) {
         {row.rightSlot ?? (
           <>
             {row.value ? <span>{row.value}</span> : null}
-            {interactive ? <ChevronRightIcon size={16} /> : null}
+            {interactive ? <ChevronRight size={16} /> : null}
           </>
         )}
       </span>

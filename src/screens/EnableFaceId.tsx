@@ -1,6 +1,6 @@
 import { Button } from '@david-richard/notify-ds'
 import { Modal } from '../components/Modal'
-import { FaceIdIcon } from '../icons'
+import { FaceId } from '@david-richard/notify-ds/icons'
 
 type Props = {
   open: boolean
@@ -12,7 +12,7 @@ export function EnableFaceId({ open, onEnable, onSkip }: Props) {
   return (
     <Modal open={open} onDismiss={onSkip}>
       <div style={{ color: '#FFFFFF', display: 'inline-flex', justifyContent: 'center' }}>
-        <FaceIdIcon size={56} strokeWidth={1.5} />
+        <FaceId size={56} strokeWidth={1.5} />
       </div>
       <h2
         style={{

@@ -1,13 +1,7 @@
+import { Clock, Filter, Local, User } from '@david-richard/notify-ds/icons'
 import { AppBottomNav } from '../components/AppBottomNav'
 import { ScreenHeader } from '../components/ScreenHeader'
-import {
-  ClockIcon,
-  FilterIcon,
-  PinIcon,
-  ShareIcon,
-  TicketIcon,
-  UserIcon,
-} from '../icons'
+import { ShareIcon, TicketIcon } from '../icons'
 
 type Check = {
   id: string
@@ -89,7 +83,7 @@ export function CheckSearch({ onDashboard, onInventory, onMenu, onFilters }: Pro
               fontWeight: 500,
             }}
           >
-            <FilterIcon size={16} />
+            <Filter size={16} />
             Filters
           </button>
         } />
@@ -256,7 +250,7 @@ function CheckCard({ check }: { check: Check }) {
             fontSize: 13,
           }}
         >
-          <ClockIcon size={14} />
+          <Clock size={14} />
           {check.date}
         </div>
       </div>
@@ -268,7 +262,7 @@ function CheckCard({ check }: { check: Check }) {
           color: '#000',
         }}
       >
-        <PinIcon size={16} />
+        <Local size={16} />
         {check.store}
       </div>
       <div
@@ -279,7 +273,7 @@ function CheckCard({ check }: { check: Check }) {
           color: '#000',
         }}
       >
-        <UserIcon size={16} />
+        <User size={16} />
         {check.employee}
       </div>
       <div
