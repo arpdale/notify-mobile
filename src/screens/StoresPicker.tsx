@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, InputField } from '@david-richard/notify-ds'
+import { Button, Checkbox, InputField } from '@david-richard/notify-ds'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { STORES, type Store } from '../lib/stores'
 
@@ -77,7 +77,7 @@ export function StoresPicker({ onBack, selectedIds, onChange }: Props) {
         >
           {filtered.map((store) => (
             <li key={store.id}>
-              <CheckboxRow
+              <Checkbox
                 label={store.name}
                 checked={selectedIds.has(store.id)}
                 onChange={() => toggle(store.id)}
@@ -117,90 +117,3 @@ export function StoresPicker({ onBack, selectedIds, onChange }: Props) {
 
 // Type-only import to keep the named-export list narrow.
 export type { Store }
-
-/**
- * Stable checkbox row matched against the DS Checkbox visual spec — 18×18
- * rounded square, 4px corner radius, 1.5px teal stroke when unchecked, cyan
- * fill + white tick when checked. Uses box-shadow inset for the stroke so
- * toggling state has zero layout impact (DS Checkbox uses border-color
- * which produces a sub-pixel shift on transition because the rounded-rect
- * mask repaints).
- */
-function CheckboxRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: () => void
-}) {
-  return (
-    <label
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        cursor: 'pointer',
-        userSelect: 'none',
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        style={{
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          padding: 0,
-          margin: -1,
-          overflow: 'hidden',
-          clip: 'rect(0, 0, 0, 0)',
-          border: 0,
-        }}
-      />
-      <span
-        aria-hidden
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 18,
-          height: 18,
-          borderRadius: 4,
-          flexShrink: 0,
-          background: checked ? '#40CCF2' : 'transparent',
-          boxShadow: checked ? 'none' : 'inset 0 0 0 1.5px #339FB8',
-          transition: 'background-color 120ms, box-shadow 120ms',
-        }}
-      >
-        {checked ? (
-          <svg
-            width="11"
-            height="8"
-            viewBox="0 0 11 8"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="1,4 4,7 10,1" />
-          </svg>
-        ) : null}
-      </span>
-      <span
-        style={{
-          fontFamily: "'Red Hat Text', 'Inter', sans-serif",
-          fontSize: 14,
-          fontWeight: 400,
-          color: '#000',
-          lineHeight: 1.2,
-        }}
-      >
-        {label}
-      </span>
-    </label>
-  )
-}
