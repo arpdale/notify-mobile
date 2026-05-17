@@ -1,6 +1,21 @@
+import { useEffect, useMemo, useState } from 'react'
 import { DetailCard, DetailShell } from '../components/DetailShell'
 import { CompareLineChart } from '../components/charts/CompareLineChart'
 import { CHART_COLORS } from '../components/charts/colors'
+import {
+  addDays,
+  defaultCompareFor,
+  formatDate,
+  resolveCompare,
+  resolvePrimary,
+  toIsoDateString,
+  type DateFilter,
+} from '../lib/dateFilter'
+import {
+  getHourlyComparison,
+  trendPct,
+  type HourPoint,
+} from '../lib/data/selectors'
 
 type HourRow = {
   hour: string
@@ -10,41 +25,15 @@ type HourRow = {
   pct: number | null
 }
 
-/** 24-hour shape mirroring net-sales.png — today mostly zero with a single
- *  morning spike; previous day has multiple spikes. */
-const DEMO_HOURS: HourRow[] = [
-  { hour: '12 AM', today: 0, previous: 0, pct: 0 },
-  { hour: '1 AM', today: 0, previous: 0, pct: 0 },
-  { hour: '2 AM', today: 0, previous: 0, pct: 0 },
-  { hour: '3 AM', today: 0, previous: 0, pct: 0 },
-  { hour: '4 AM', today: 0, previous: 0, pct: 0 },
-  { hour: '5 AM', today: 0, previous: 0, pct: 0 },
-  { hour: '6 AM', today: 60, previous: 120, pct: -50 },
-  { hour: '7 AM', today: 360, previous: 540, pct: -33.3 },
-  { hour: '8 AM', today: 1040, previous: 1410, pct: -26.2 },
-  { hour: '9 AM', today: 120, previous: 540, pct: -77.7 },
-  { hour: '10 AM', today: 30, previous: 240, pct: -87.5 },
-  { hour: '11 AM', today: 60, previous: 800, pct: -92.5 },
-  { hour: '12 PM', today: 80, previous: 820, pct: -90.2 },
-  { hour: '1 PM', today: 60, previous: 460, pct: -86.9 },
-  { hour: '2 PM', today: 40, previous: 280, pct: -85.7 },
-  { hour: '3 PM', today: 30, previous: 360, pct: -91.6 },
-  { hour: '4 PM', today: 20, previous: 420, pct: -95.2 },
-  { hour: '5 PM', today: 10, previous: 220, pct: -95.4 },
-  { hour: '6 PM', today: 0, previous: 180, pct: -100 },
-  { hour: '7 PM', today: 0, previous: 280, pct: -100 },
-  { hour: '8 PM', today: 0, previous: 320, pct: -100 },
-  { hour: '9 PM', today: 0, previous: 120, pct: -100 },
-  { hour: '10 PM', today: 0, previous: 40, pct: -100 },
-  { hour: '11 PM', today: 0, previous: 0, pct: 0 },
-]
-
 type Props = {
   onBack: () => void
   onPickStores?: () => void
   onPickDate?: () => void
   storeLabel?: string
   dateLabel?: string
+  selectedStoreIds: Set<string>
+  dateFilter: DateFilter
+  today: Date
 }
 
 export function NetSales({
@@ -53,7 +42,53 @@ export function NetSales({
   onPickDate,
   storeLabel,
   dateLabel,
+  selectedStoreIds,
+  dateFilter,
+  today,
 }: Props) {
+  const [rows, setRows] = useState<HourRow[]>([])
+
+  // The chart is fundamentally a "one day, by hour" view. For Day mode we
+  // use that day; for Week/Month/Custom we anchor on the last (most recent)
+  // day of the user's selected range. The "previous" line uses the user's
+  // explicit compare option when Compare is on, and falls back to the
+  // mode's natural prior (prev-day / prev-week / prev-month) otherwise so
+  // we always draw two lines.
+  const { primaryDate, comparisonDate, primaryLabel, comparisonLabel } = useMemo(() => {
+    const primary = resolvePrimary(dateFilter, today)
+    const compareFilter =
+      dateFilter.compareOn && dateFilter.compare
+        ? dateFilter
+        : {
+            ...dateFilter,
+            compareOn: true,
+            compare: defaultCompareFor(dateFilter.mode),
+          }
+    const compareRange = resolveCompare(compareFilter, primary)
+    const compareEnd = compareRange ? compareRange.end : addDays(primary.end, -1)
+    return {
+      primaryDate: toIsoDateString(primary.end),
+      comparisonDate: toIsoDateString(compareEnd),
+      // Labels are the actual dates being compared. The pill at the top of
+      // the screen already tells the user which range and which compare
+      // option are active; the legend just needs to identify the two lines.
+      primaryLabel: formatDate(primary.end),
+      comparisonLabel: formatDate(compareEnd),
+    }
+  }, [dateFilter, today])
+
+  useEffect(() => {
+    let cancelled = false
+    getHourlyComparison('netSales', primaryDate, comparisonDate, {
+      storeIds: selectedStoreIds,
+    }).then((points) => {
+      if (!cancelled) setRows(points.map(toHourRow))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [primaryDate, comparisonDate, selectedStoreIds])
+
   return (
     <DetailShell
       title="Net Sales"
@@ -64,22 +99,41 @@ export function NetSales({
       dateLabel={dateLabel}
     >
       <DetailCard title="Net Sales by hour" onExpand={() => undefined}>
-        <Legend />
+        <Legend primaryLabel={primaryLabel} comparisonLabel={comparisonLabel} />
         <CompareLineChart
-          data={DEMO_HOURS}
+          data={rows}
           xKey="hour"
           primaryKey="today"
           comparisonKey="previous"
-          primaryLabel="Today"
-          comparisonLabel="Previous Day"
+          primaryLabel={primaryLabel}
+          comparisonLabel={comparisonLabel}
         />
       </DetailCard>
-      <HourTable rows={DEMO_HOURS} highlightIndex={1} />
+      <HourTable
+        rows={rows}
+        primaryLabel={primaryLabel}
+        comparisonLabel={comparisonLabel}
+      />
     </DetailShell>
   )
 }
 
-function Legend() {
+function toHourRow(p: HourPoint): HourRow {
+  return {
+    hour: HOURS_24[p.hour],
+    today: p.primary,
+    previous: p.comparison ?? 0,
+    pct: trendPct(p.primary, p.comparison),
+  }
+}
+
+function Legend({
+  primaryLabel,
+  comparisonLabel,
+}: {
+  primaryLabel: string
+  comparisonLabel: string
+}) {
   return (
     <div
       style={{
@@ -92,8 +146,8 @@ function Legend() {
         color: '#000',
       }}
     >
-      <LegendItem color={CHART_COLORS.today} label="Today" />
-      <LegendItem color={CHART_COLORS.previous} label="Previous Day" />
+      <LegendItem color={CHART_COLORS.today} label={primaryLabel} />
+      <LegendItem color={CHART_COLORS.previous} label={comparisonLabel} />
     </div>
   )
 }
@@ -113,9 +167,13 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 function HourTable({
   rows,
   highlightIndex,
+  primaryLabel,
+  comparisonLabel,
 }: {
   rows: HourRow[]
   highlightIndex?: number
+  primaryLabel: string
+  comparisonLabel: string
 }) {
   return (
     <div
@@ -137,8 +195,8 @@ function HourTable({
         }}
       >
         <span>Hour</span>
-        <span>Today</span>
-        <span>Previous Day</span>
+        <span>{primaryLabel}</span>
+        <span>{comparisonLabel}</span>
         <span style={{ textAlign: 'right' }}>%</span>
       </div>
       {rows.map((r, i) => {
