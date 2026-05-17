@@ -1,4 +1,4 @@
-import { Switcher, Toggle } from '@david-richard/notify-ds'
+import { Radio, Switcher, Toggle } from '@david-richard/notify-ds'
 import { ChevronLeftIcon } from '../icons'
 import {
   compareOptions,
@@ -242,65 +242,38 @@ function PeriodRow({
   onSelect: () => void
 }) {
   return (
-    <label
-      htmlFor={inputId}
+    <div
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
         padding: '10px 0',
-        cursor: 'pointer',
         fontFamily: "'Inter', sans-serif",
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 16, color: '#000' }}>{label}</span>
-        {sub ? <span style={{ fontSize: 12, color: '#6B7280' }}>{sub}</span> : null}
-      </div>
-      <span
+      <label
+        htmlFor={inputId}
         style={{
-          position: 'relative',
-          display: 'inline-block',
-          width: 22,
-          height: 22,
-          borderRadius: '50%',
-          border: selected ? 'none' : '1.5px solid #339FB8',
-          background: selected ? '#40CCF2' : 'transparent',
-          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          cursor: 'pointer',
+          flex: 1,
         }}
       >
-        {selected ? (
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#FFFFFF',
-            }}
-          />
-        ) : null}
-        <input
-          id={inputId}
-          type="radio"
-          name={name}
-          value={inputId}
-          checked={selected}
-          onChange={onSelect}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            opacity: 0,
-            cursor: 'pointer',
-            margin: 0,
-          }}
-        />
-      </span>
-    </label>
+        <span style={{ fontSize: 16, color: '#000' }}>{label}</span>
+        {sub ? <span style={{ fontSize: 12, color: '#6B7280' }}>{sub}</span> : null}
+      </label>
+      <Radio
+        id={inputId}
+        name={name}
+        value={inputId}
+        checked={selected}
+        onChange={(e) => {
+          if (e.target.checked) onSelect()
+        }}
+      />
+    </div>
   )
 }
