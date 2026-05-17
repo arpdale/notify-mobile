@@ -1,7 +1,8 @@
 import { Selector } from '@david-richard/notify-ds'
+import { Store } from '@david-richard/notify-ds/icons'
 import { EmptyState } from '../components/EmptyState'
 import { MenuTargetPage } from '../components/MenuTargetPage'
-import { ArchiveXIcon, StoreIcon } from '../icons'
+import { ArchiveXIcon } from '../icons'
 import { STORES } from '../lib/stores'
 
 type Props = {
@@ -44,7 +45,7 @@ export function Forecast({
             label={label}
             variant="primary"
             state="active"
-            icon={<StoreIcon size={16} />}
+            icon={<Store size={16} />}
             onClick={onPickStore}
             style={{ width: '100%', justifyContent: 'center' }}
           />

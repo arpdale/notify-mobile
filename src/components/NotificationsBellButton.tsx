@@ -1,4 +1,4 @@
-import { BellIcon } from '../icons'
+import { Bell } from '@david-richard/notify-ds/icons'
 
 type Props = {
   onClick?: () => void
@@ -23,7 +23,7 @@ export function NotificationsBellButton({ onClick, hasUnread = false }: Props) {
         color: '#000',
       }}
     >
-      <BellIcon size={22} />
+      <Bell size={22} />
       {hasUnread ? (
         <span
           aria-hidden

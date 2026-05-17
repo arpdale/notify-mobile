@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ChevronLeftIcon } from '../icons'
+import { ChevronLeft } from '@david-richard/notify-ds/icons'
 
 type Props = {
   title: string
@@ -37,7 +37,7 @@ export function ScreenHeader({ title, onBack, rightSlot }: Props) {
             justifyContent: 'flex-start',
           }}
         >
-          <ChevronLeftIcon size={24} />
+          <ChevronLeft size={24} />
         </button>
       ) : (
         <span />

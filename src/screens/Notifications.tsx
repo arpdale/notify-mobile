@@ -1,5 +1,5 @@
 import { BottomSheet } from '../components/BottomSheet'
-import { BellIcon } from '../icons'
+import { Bell } from '@david-richard/notify-ds/icons'
 
 type Props = {
   open: boolean
@@ -78,7 +78,7 @@ export function Notifications({ open, onDismiss }: Props) {
             color: '#9CA3AF',
           }}
         >
-          <BellIcon size={28} />
+          <Bell size={28} />
         </div>
         <div
           style={{

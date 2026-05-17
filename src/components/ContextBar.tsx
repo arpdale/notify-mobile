@@ -1,5 +1,5 @@
 import { Selector } from '@david-richard/notify-ds'
-import { CalendarIcon, StoreIcon } from '../icons'
+import { Calendar, Store } from '@david-richard/notify-ds/icons'
 
 type Props = {
   storeLabel: string
@@ -26,7 +26,7 @@ export function ContextBar({ storeLabel, dateLabel, onStoreClick, onDateClick }:
         label={storeLabel}
         variant="primary"
         state="active"
-        icon={<StoreIcon size={16} />}
+        icon={<Store size={16} />}
         onClick={onStoreClick}
       />
       <span style={{ color: '#6B7280', fontSize: 18, lineHeight: 1 }}>•</span>
@@ -34,7 +34,7 @@ export function ContextBar({ storeLabel, dateLabel, onStoreClick, onDateClick }:
         label={dateLabel}
         variant="primary"
         state="active"
-        icon={<CalendarIcon size={16} />}
+        icon={<Calendar size={16} />}
         onClick={onDateClick}
       />
     </div>

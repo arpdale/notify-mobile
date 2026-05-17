@@ -1,6 +1,6 @@
 import { Button } from '@david-richard/notify-ds'
 import { Modal } from '../components/Modal'
-import { DownloadIcon } from '../icons'
+import { Download } from '@david-richard/notify-ds/icons'
 
 type Props = {
   open: boolean
@@ -18,7 +18,7 @@ export function NewVersionAvailable({ open, onUpdate, onLater }: Props) {
           justifyContent: 'center',
         }}
       >
-        <DownloadIcon size={36} strokeWidth={1.5} />
+        <Download size={36} strokeWidth={1.5} />
       </div>
       <p
         style={{

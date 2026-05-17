@@ -2,7 +2,7 @@ import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?u
 import { AppBottomNav } from '../components/AppBottomNav'
 import { ContextBar } from '../components/ContextBar'
 import { EmptyState } from '../components/EmptyState'
-import { BoxIcon } from '../icons'
+import { Package } from '@david-richard/notify-ds/icons'
 import { NotificationsBellButton } from '../components/NotificationsBellButton'
 
 type Props = {
@@ -60,7 +60,7 @@ export function Inventory({
         }}
       >
         <EmptyState
-          icon={<BoxIcon size={48} />}
+          icon={<Package size={48} />}
           title="Inventory coming soon"
           description="Live counts and restock alerts will land here."
         />

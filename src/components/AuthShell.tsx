@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
-import { ChevronLeftIcon } from '../icons'
+import { ChevronLeft } from '@david-richard/notify-ds/icons'
 
 type Props = {
   onBack: () => void
@@ -69,7 +69,7 @@ export function AuthShell({
           cursor: 'pointer',
         }}
       >
-        <ChevronLeftIcon size={18} />
+        <ChevronLeft size={18} />
         <span style={{ textDecoration: 'underline' }}>{backLabel}</span>
       </button>
 
