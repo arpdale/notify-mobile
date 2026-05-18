@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Button, Switcher } from '@david-richard/notify-ds'
-import { ScreenHeader } from '../components/ScreenHeader'
+import { Button, ScreenHeader, Switcher } from '@david-richard/notify-ds'
 import { ContextBar } from '../components/ContextBar'
 import { EmptyState } from '../components/EmptyState'
 import { ArchiveXIcon } from '../icons'

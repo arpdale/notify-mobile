@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ScreenHeader } from './ScreenHeader'
+import { ScreenHeader } from '@david-richard/notify-ds'
 import { ContextBar } from './ContextBar'
 
 type Props = {

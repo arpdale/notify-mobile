@@ -1,7 +1,6 @@
-import { SectionHeader, StatCard } from '@david-richard/notify-ds'
+import { ScreenHeader, SectionHeader, StatCard } from '@david-richard/notify-ds'
 import { Clock, Filter, Local, User } from '@david-richard/notify-ds/icons'
 import { AppBottomNav } from '../components/AppBottomNav'
-import { ScreenHeader } from '../components/ScreenHeader'
 import { ShareIcon, TicketIcon } from '../icons'
 
 type Check = {

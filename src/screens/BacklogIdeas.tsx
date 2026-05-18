@@ -1,7 +1,7 @@
-import { MenuTargetPage } from '../components/MenuTargetPage'
-import { ScreenHeader } from '../components/ScreenHeader'
-import { EmptyState } from '../components/EmptyState'
+import { ScreenHeader } from '@david-richard/notify-ds'
 import { Menu } from '@david-richard/notify-ds/icons'
+import { MenuTargetPage } from '../components/MenuTargetPage'
+import { EmptyState } from '../components/EmptyState'
 
 /** Backlog Ideas — a temporary holding pen for experimental pages reached
  *  from the menu drawer. The index page lists each Idea as a link; each

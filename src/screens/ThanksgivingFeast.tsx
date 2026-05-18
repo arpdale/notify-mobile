@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { TabBar } from '@david-richard/notify-ds'
-import { ScreenHeader } from '../components/ScreenHeader'
+import { ScreenHeader, TabBar } from '@david-richard/notify-ds'
 import { ArrowUp } from '@david-richard/notify-ds/icons'
 
 const TABS = ['Prices', 'Checks']
