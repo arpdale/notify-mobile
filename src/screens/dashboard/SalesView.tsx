@@ -31,6 +31,14 @@ const fmtMoney = (n: number) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })
+// Cents-precision for per-unit / smaller-magnitude tiles (matches prod).
+const fmtMoneyPrecise = (n: number) =>
+  n.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 const fmtInt = (n: number) => Math.round(n).toLocaleString('en-US')
 
 type TileKey = keyof SalesTiles
@@ -46,14 +54,14 @@ const TILE_DEFS_TOP: TileDef[] = [
   { label: 'Net Sales',     key: 'netSales',     format: fmtMoney },
   { label: 'Checks',        key: 'checks',       format: fmtInt   },
   { label: 'Payments',      key: 'payments',     format: fmtMoney },
-  { label: 'Average Check', key: 'averageCheck', format: fmtMoney },
+  { label: 'Average Check', key: 'averageCheck', format: fmtMoneyPrecise },
   { label: 'Gross Sales',   key: 'grossSales',   format: fmtMoney },
   { label: 'Discounts',     key: 'discounts',    format: fmtMoney },
   { label: 'Cash',          key: 'cash',         format: fmtMoney },
 ]
 const TILE_DEFS_BOTTOM: TileDef[] = [
-  { label: 'Voids',           key: 'voids',          format: fmtMoney },
-  { label: 'Service Charges', key: 'serviceCharges', format: fmtMoney },
+  { label: 'Voids',           key: 'voids',          format: fmtMoneyPrecise },
+  { label: 'Service Charges', key: 'serviceCharges', format: fmtMoneyPrecise },
 ]
 
 export function SalesView({ onTileClick, selectedStoreIds, dateFilter, today }: Props) {
