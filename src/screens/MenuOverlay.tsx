@@ -13,6 +13,7 @@ export type MenuItemId =
   | 'leaderboards'
   | 'analyze'
   | 'product-tour'
+  | 'backlog-ideas'
 
 type MenuItem = {
   id: MenuItemId
@@ -41,6 +42,7 @@ type Props = {
   onLeaderboards?: () => void
   onAnalyze?: () => void
   onProductTour?: () => void
+  onBacklogIdeas?: () => void
   onLogOut?: () => void
   version?: string
 }
@@ -57,6 +59,7 @@ export function MenuOverlay({
   onLeaderboards,
   onAnalyze,
   onProductTour,
+  onBacklogIdeas,
   onLogOut,
   version = 'Version 3.6.222',
 }: Props) {
@@ -74,6 +77,7 @@ export function MenuOverlay({
     ...(onLeaderboards
       ? [{ id: 'leaderboards' as const, label: 'Leaderboards', onClick: onLeaderboards }]
       : []),
+    { id: 'backlog-ideas', label: 'Backlog Ideas', onClick: onBacklogIdeas },
   ]
 
   const support: MenuItem[] = [
