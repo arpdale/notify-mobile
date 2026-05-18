@@ -28,8 +28,8 @@ const fmtMoney = (n: number) =>
   n.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   })
 const fmtInt = (n: number) => Math.round(n).toLocaleString('en-US')
 
