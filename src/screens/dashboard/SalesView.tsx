@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MetricTile, MetricTileGrid } from '@david-richard/notify-ds'
+import { MetricTile, MetricTileGrid, StatusTile } from '@david-richard/notify-ds'
 import type { DashboardTile } from '../Dashboard'
 import {
   defaultCompareFor,
@@ -118,108 +118,21 @@ export function SalesView({ onTileClick, selectedStoreIds, dateFilter, today }: 
   return (
     <MetricTileGrid cols={2}>
       {TILE_DEFS_TOP.map(renderTile)}
-      <TillsTile
-        loading={loading}
-        counts={tillCounts}
+      <StatusTile
+        label="Tills"
+        items={
+          tillCounts
+            ? [
+                { label: 'Open', value: tillCounts.open },
+                { label: 'Closed', value: tillCounts.closed },
+                { label: 'Reconciled', value: tillCounts.reconciled },
+              ]
+            : []
+        }
+        loading={loading || !tillCounts}
         onClick={() => onTileClick?.('Tills')}
       />
       {TILE_DEFS_BOTTOM.map(renderTile)}
     </MetricTileGrid>
-  )
-}
-
-/**
- * Tills is the one Sales tile that doesn't fit DS MetricTile (its "value"
- * is a three-row status list, and MetricTile.value is typed string | number).
- * Rendered with the same 16px-radius / 4px shadow card the DS uses so the
- * grid reads as one consistent surface.
- */
-function TillsTile({
-  onClick,
-  loading,
-  counts,
-}: {
-  onClick?: () => void
-  loading?: boolean
-  counts: TillCounts | null
-}) {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-busy={loading}
-      onClick={loading ? undefined : onClick}
-      onKeyDown={(e) => {
-        if (loading) return
-        if (e.key === 'Enter' || e.key === ' ') onClick?.()
-      }}
-      style={{
-        background: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        boxShadow: '0 4px 4px rgba(0,0,0,0.06)',
-        fontFamily: "'Inter', sans-serif",
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        cursor: loading ? 'default' : 'pointer',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          color: '#6B7280',
-          fontSize: 12,
-        }}
-      >
-        <span>Tills</span>
-        {!loading && <span aria-hidden>›</span>}
-      </div>
-      {loading || !counts ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <SkeletonLine width="48%" />
-          <SkeletonLine width="56%" />
-          <SkeletonLine width="60%" />
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 4,
-            fontSize: 14,
-            color: '#000',
-          }}
-        >
-          <span>
-            Open: <strong style={{ fontWeight: 600 }}>{counts.open}</strong>
-          </span>
-          <span>
-            Closed: <strong style={{ fontWeight: 600 }}>{counts.closed}</strong>
-          </span>
-          <span>
-            Reconciled:{' '}
-            <strong style={{ fontWeight: 600 }}>{counts.reconciled}</strong>
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function SkeletonLine({ width = '100%' }: { width?: string }) {
-  return (
-    <span
-      aria-hidden
-      style={{
-        display: 'block',
-        width,
-        height: 12,
-        borderRadius: 4,
-        background: '#EAEAEA',
-      }}
-    />
   )
 }
