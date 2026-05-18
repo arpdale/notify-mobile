@@ -15,6 +15,13 @@ import {
   KitchenIntelligence,
   ProductTour,
 } from './screens/menuTargets'
+import {
+  BacklogIdeas,
+  Idea1,
+  Idea2,
+  Idea3,
+  type BacklogIdeaId,
+} from './screens/BacklogIdeas'
 import { EnableFaceId } from './screens/EnableFaceId'
 import { ThanksgivingFeast } from './screens/ThanksgivingFeast'
 import { Splash } from './screens/Splash'
@@ -130,6 +137,7 @@ type BaseRoute =
   | 'leaderboards'
   | 'analyze'
   | 'product-tour'
+  | 'backlog-ideas'
 
 /** Routes that push on top of the base layer with a right-to-left slide. */
 type PushRoute =
@@ -140,6 +148,9 @@ type PushRoute =
   | 'discounts'
   | 'taxes'
   | 'service-charges'
+  | 'idea1'
+  | 'idea2'
+  | 'idea3'
 
 /** Map base routes back to the menu-item id so MenuOverlay can bold the
  *  active page when reopened. */
@@ -152,6 +163,13 @@ const ROUTE_TO_MENU_ITEM: Partial<Record<BaseRoute, MenuItemId>> = {
   leaderboards: 'leaderboards',
   analyze: 'analyze',
   'product-tour': 'product-tour',
+  'backlog-ideas': 'backlog-ideas',
+}
+
+const IDEA_TO_ROUTE: Record<BacklogIdeaId, PushRoute> = {
+  idea1: 'idea1',
+  idea2: 'idea2',
+  idea3: 'idea3',
 }
 
 const TILE_ROUTES: Partial<Record<DashboardTile, PushRoute>> = {
@@ -413,6 +431,14 @@ function App() {
           onMenu={() => setMenuOpen(true)}
         />
       )}
+      {baseRoute === 'backlog-ideas' && (
+        <BacklogIdeas
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+          onOpenIdea={(id) => setPush(IDEA_TO_ROUTE[id])}
+        />
+      )}
       {baseRoute === 'checks-search' && (
         <CheckSearch
           onDashboard={() => goto('dashboard')}
@@ -515,6 +541,15 @@ function App() {
           />
         </Suspense>
       </SlideIn>
+      <SlideIn open={push === 'idea1'} direction="right" onDismiss={closePush}>
+        <Idea1 onBack={closePush} />
+      </SlideIn>
+      <SlideIn open={push === 'idea2'} direction="right" onDismiss={closePush}>
+        <Idea2 onBack={closePush} />
+      </SlideIn>
+      <SlideIn open={push === 'idea3'} direction="right" onDismiss={closePush}>
+        <Idea3 onBack={closePush} />
+      </SlideIn>
 
       {/* ── Full-screen modals (slide up from bottom) ──────────── */}
       <SlideIn
@@ -563,6 +598,7 @@ function App() {
         }
         onAnalyze={() => goto('analyze')}
         onProductTour={() => goto('product-tour')}
+        onBacklogIdeas={() => goto('backlog-ideas')}
         onLogOut={() => goto('sign-in')}
       />
       <Notifications
