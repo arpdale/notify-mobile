@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Badge } from '@david-richard/notify-ds'
+import { Badge, DrawerSection, DrawerItem, DrawerAction } from '@david-richard/notify-ds'
 import { BottomSheet } from '../components/BottomSheet'
 
 /** Identifies which menu item maps to which destination — used to bold the
@@ -24,7 +24,6 @@ type MenuItem = {
 
 // Dark slate matching walkthrough frame 0062 — solid surface, slight cool tint.
 const SHEET_BG = '#1F2329'
-const TEXT_PRIMARY = '#FFFFFF'
 const TEXT_SECONDARY = 'rgba(255,255,255,0.55)'
 
 type Props = {
@@ -105,8 +104,28 @@ export function MenuOverlay({
           paddingBottom: 16,
         }}
       >
-        <MenuSection title="Tools" items={tools} current={current} />
-        <MenuSection title="Support" items={support} current={current} />
+        <DrawerSection title="Tools">
+          {tools.map((item) => (
+            <DrawerItem
+              key={item.id}
+              label={item.label}
+              onClick={item.onClick}
+              active={item.id === current}
+              badge={item.badge}
+            />
+          ))}
+        </DrawerSection>
+        <DrawerSection title="Support">
+          {support.map((item) => (
+            <DrawerItem
+              key={item.id}
+              label={item.label}
+              onClick={item.onClick}
+              active={item.id === current}
+              badge={item.badge}
+            />
+          ))}
+        </DrawerSection>
       </div>
 
       <div
@@ -119,24 +138,7 @@ export function MenuOverlay({
           gap: 16,
         }}
       >
-        <button
-          type="button"
-          onClick={onLogOut}
-          style={{
-            alignSelf: 'flex-start',
-            border: 0,
-            background: 'transparent',
-            padding: 0,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-display)',
-            fontSize: 22,
-            fontWeight: 700,
-            color: TEXT_PRIMARY,
-            textDecoration: 'underline',
-          }}
-        >
-          Log Out
-        </button>
+        <DrawerAction onClick={onLogOut}>Log Out</DrawerAction>
         <span
           style={{
             alignSelf: 'center',
@@ -149,74 +151,5 @@ export function MenuOverlay({
         </span>
       </div>
     </BottomSheet>
-  )
-}
-
-function MenuSection({
-  title,
-  items,
-  current,
-}: {
-  title: string
-  items: MenuItem[]
-  current?: MenuItemId
-}) {
-  return (
-    <section>
-      <h2
-        style={{
-          margin: '0 0 12px',
-          fontFamily: 'var(--font-display)',
-          fontSize: 24,
-          fontWeight: 700,
-          color: TEXT_PRIMARY,
-        }}
-      >
-        {title}
-      </h2>
-      <ul
-        style={{
-          margin: 0,
-          padding: 0,
-          listStyle: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-        }}
-      >
-        {items.map((item) => {
-          const isActive = item.id === current
-          return (
-            <li
-              key={item.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}
-            >
-              <button
-                type="button"
-                onClick={item.onClick}
-                style={{
-                  border: 0,
-                  background: 'transparent',
-                  padding: 0,
-                  cursor: item.onClick ? 'pointer' : 'default',
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 18,
-                  fontWeight: isActive ? 700 : 500,
-                  color: TEXT_PRIMARY,
-                  textAlign: 'left',
-                }}
-              >
-                {item.label}
-              </button>
-              {item.badge}
-            </li>
-          )
-        })}
-      </ul>
-    </section>
   )
 }
