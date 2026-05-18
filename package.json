@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@david-richard/notify-ds": "^1.1.5",
+    "@david-richard/notify-ds": "^1.1.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "recharts": "^3.8.1"
