@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
+import { ScreenHeader } from '@david-richard/notify-ds'
 import { AppBottomNav, type AppNavValue } from './AppBottomNav'
-import { ScreenHeader } from './ScreenHeader'
 
 type Props = {
   title: string

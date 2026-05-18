@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Checkbox, InputField } from '@david-richard/notify-ds'
-import { ScreenHeader } from '../components/ScreenHeader'
+import { Button, Checkbox, InputField, ScreenHeader } from '@david-richard/notify-ds'
 import { STORES, type Store } from '../lib/stores'
 
 type Props = {
