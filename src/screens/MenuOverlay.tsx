@@ -124,7 +124,7 @@ export function MenuOverlay({
             background: 'transparent',
             padding: 0,
             cursor: 'pointer',
-            fontFamily: "'Red Hat Display', 'Inter', sans-serif",
+            fontFamily: 'var(--font-display)',
             fontSize: 22,
             fontWeight: 700,
             color: TEXT_PRIMARY,
@@ -162,7 +162,7 @@ function MenuSection({
       <h2
         style={{
           margin: '0 0 12px',
-          fontFamily: "'Red Hat Display', 'Inter', sans-serif",
+          fontFamily: 'var(--font-display)',
           fontSize: 24,
           fontWeight: 700,
           color: TEXT_PRIMARY,
