@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Button, InputField } from '@david-richard/notify-ds'
-import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
 import logoQu from '@david-richard/notify-ds/assets/logo-qu.svg?url'
 
 type Props = {
@@ -42,9 +41,9 @@ export function SignIn({ onSignIn, onForgotPassword, onDevSkip }: Props) {
           Sign In to
         </p>
         <img
-          src={logoLockup}
-          alt="Qu Notify"
-          style={{ height: 36, marginTop: 8 }}
+          src={logoQu}
+          alt="Qu"
+          style={{ height: 44, marginTop: 8 }}
         />
       </div>
 
