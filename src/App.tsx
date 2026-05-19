@@ -1,6 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { SignIn } from './screens/SignIn'
-import { Dashboard, type DashboardTile } from './screens/Dashboard'
+import {
+  Dashboard,
+  type DashboardTab,
+  type DashboardTile,
+  type StoreSubTab,
+} from './screens/Dashboard'
 import { ResetPassword } from './screens/ResetPassword'
 import { TwoStepVerification } from './screens/TwoStepVerification'
 import { ChooseNewPassword } from './screens/ChooseNewPassword'
@@ -38,6 +43,7 @@ import {
   saveView,
   useSavedViews,
   viewMatches,
+  type SavedView,
 } from './lib/savedViews'
 import { DEFAULT_SELECTED_STORE_IDS, STORES, formatStoreLabel } from './lib/stores'
 import {
@@ -51,6 +57,11 @@ import {
 const STORES_LS_KEY = 'notify-selected-store-ids'
 const FILTER_LS_KEY = 'notify-date-filter'
 const LAST_ROUTE_LS_KEY = 'notify-last-route'
+const DASHBOARD_TAB_LS_KEY = 'notify-dashboard-tab'
+const STORE_SUBTAB_LS_KEY = 'notify-store-subtab'
+
+const DASHBOARD_TABS: readonly DashboardTab[] = ['Sales', 'Labor', 'Store', 'Product']
+const STORE_SUBTABS: readonly StoreSubTab[] = ['Productivity', 'Network', 'Kitchen']
 
 /** Base routes that are safe to restore on launch — auth flow and error
  *  states are excluded so a previous crash doesn't trap the user. Kept as a
@@ -112,6 +123,30 @@ function loadDateFilter(): DateFilter {
     // ignore
   }
   return DEFAULT_FILTER
+}
+
+function loadDashboardTab(): DashboardTab {
+  try {
+    const raw = localStorage.getItem(DASHBOARD_TAB_LS_KEY)
+    if (raw && DASHBOARD_TABS.includes(raw as DashboardTab)) {
+      return raw as DashboardTab
+    }
+  } catch {
+    // ignore
+  }
+  return 'Sales'
+}
+
+function loadStoreSubTab(): StoreSubTab {
+  try {
+    const raw = localStorage.getItem(STORE_SUBTAB_LS_KEY)
+    if (raw && STORE_SUBTABS.includes(raw as StoreSubTab)) {
+      return raw as StoreSubTab
+    }
+  } catch {
+    // ignore
+  }
+  return 'Productivity'
 }
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
@@ -222,13 +257,16 @@ const DEMO_CODES = {
 
 const SPLASH_VERSION_PROMPT_DELAY_MS = 1200
 
-/** Computed once at App mount — picks where the user lands after auth and
- *  what filter state to seed. Default saved view wins; otherwise restore
- *  the last screen if the flag is on; otherwise plain dashboard. */
+/** Computed once at App mount — picks where the user lands after auth, the
+ *  filter state to seed, and which tabs to surface. Default saved view wins
+ *  on all axes; otherwise restore the last screen (if the flag is on) and
+ *  the last persisted tab state; otherwise sensible defaults. */
 function computeBootState(): {
   postAuthRoute: BaseRoute
   storeIds: Set<string>
   filter: DateFilter
+  dashboardTab: DashboardTab
+  storeSubTab: StoreSubTab
 } {
   const savedViewsOn = getExperiment('saved-views')
   const restoreLastOn = getExperiment('restore-last-view')
@@ -236,10 +274,24 @@ function computeBootState(): {
   if (savedViewsOn) {
     const def = getDefaultView()
     if (def) {
+      const loc = def.location
+      const screen = (loc?.screen && RESTORABLE_ROUTES.has(loc.screen as BaseRoute))
+        ? (loc.screen as BaseRoute)
+        : 'dashboard'
+      const dashboardTab =
+        loc?.dashboardTab && DASHBOARD_TABS.includes(loc.dashboardTab as DashboardTab)
+          ? (loc.dashboardTab as DashboardTab)
+          : loadDashboardTab()
+      const storeSubTab =
+        loc?.storeSubTab && STORE_SUBTABS.includes(loc.storeSubTab as StoreSubTab)
+          ? (loc.storeSubTab as StoreSubTab)
+          : loadStoreSubTab()
       return {
-        postAuthRoute: 'dashboard',
+        postAuthRoute: screen,
         storeIds: new Set(def.storeIds),
         filter: def.dateFilter,
+        dashboardTab,
+        storeSubTab,
       }
     }
   }
@@ -248,6 +300,8 @@ function computeBootState(): {
     postAuthRoute: (restoreLastOn ? loadLastRoute() : null) ?? 'dashboard',
     storeIds: loadSelectedStoreIds(),
     filter: loadDateFilter(),
+    dashboardTab: loadDashboardTab(),
+    storeSubTab: loadStoreSubTab(),
   }
 }
 
@@ -335,6 +389,33 @@ function App() {
   const today = useMemo(() => new Date(), [])
   const dateLabel = formatPillLabel(dateFilter, today)
 
+  // Dashboard tab state (L1) and Store sub-tab (L2) live at the App level
+  // so they survive: (a) navigating away and back, (b) close/reopen via
+  // localStorage, and (c) Saved Views capture. Persistence is independent
+  // of restore-last-view — these are tabs, not screens, so the user always
+  // expects them to be remembered within the same session at minimum.
+  const [dashboardTab, setDashboardTab] = useState<DashboardTab>(
+    () => boot.dashboardTab,
+  )
+  useEffect(() => {
+    try {
+      localStorage.setItem(DASHBOARD_TAB_LS_KEY, dashboardTab)
+    } catch {
+      // ignore
+    }
+  }, [dashboardTab])
+
+  const [storeSubTab, setStoreSubTab] = useState<StoreSubTab>(
+    () => boot.storeSubTab,
+  )
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORE_SUBTAB_LS_KEY, storeSubTab)
+    } catch {
+      // ignore
+    }
+  }, [storeSubTab])
+
   // Saved views state — reactive store backed by localStorage. Multiple
   // surfaces (ContextBar star, both pickers) read this list and write to
   // it, so a flag flip or save action propagates instantly. Positioned
@@ -354,14 +435,30 @@ function App() {
     if (!savedViewsEnabled) return
     if (isCurrentSaved) return
     const name = describeView(selectedStoreIds, dateFilter, storeNameById)
-    saveView(selectedStoreIds, dateFilter, name)
+    saveView(selectedStoreIds, dateFilter, name, {
+      screen: baseRoute,
+      dashboardTab,
+      storeSubTab,
+    })
   }
 
-  const applySavedView = (v: { storeIds: string[]; dateFilter: DateFilter }) => {
+  const applySavedView = (v: SavedView) => {
     setSelectedStoreIds(new Set(v.storeIds))
     setDateFilter(v.dateFilter)
-    setStoresPickerOpen(false)
-    setDateFilterOpen(false)
+    if (v.location?.dashboardTab && DASHBOARD_TABS.includes(v.location.dashboardTab as DashboardTab)) {
+      setDashboardTab(v.location.dashboardTab as DashboardTab)
+    }
+    if (v.location?.storeSubTab && STORE_SUBTABS.includes(v.location.storeSubTab as StoreSubTab)) {
+      setStoreSubTab(v.location.storeSubTab as StoreSubTab)
+    }
+    // goto() closes the pickers as part of its reset; calling it last lets
+    // the tab/filter writes commit first so the destination renders fresh.
+    if (v.location?.screen && RESTORABLE_ROUTES.has(v.location.screen as BaseRoute)) {
+      goto(v.location.screen as BaseRoute)
+    } else {
+      setStoresPickerOpen(false)
+      setDateFilterOpen(false)
+    }
   }
 
   useEffect(() => {
@@ -484,6 +581,10 @@ function App() {
           dateLabel={dateLabel}
           onSaveView={savedViewsEnabled ? handleSaveCurrentView : undefined}
           currentViewSaved={savedViewsEnabled && isCurrentSaved}
+          tab={dashboardTab}
+          onTabChange={setDashboardTab}
+          storeSubTab={storeSubTab}
+          onStoreSubTabChange={setStoreSubTab}
           selectedStoreIds={selectedStoreIds}
           dateFilter={dateFilter}
           today={today}
@@ -505,6 +606,10 @@ function App() {
           state="error"
           onRefresh={() => goto('dashboard')}
           errorMessage="Ooops, we are having problems"
+          tab={dashboardTab}
+          onTabChange={setDashboardTab}
+          storeSubTab={storeSubTab}
+          onStoreSubTabChange={setStoreSubTab}
         />
       )}
       {baseRoute === 'network-error' && (

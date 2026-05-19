@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { TabBar } from '@david-richard/notify-ds'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
 import { STORES, type Store } from '../../lib/stores'
@@ -64,20 +64,25 @@ function buildRow(store: Store, periodKey: string): StoreRow {
   }
 }
 
+type SubTab = 'Productivity' | 'Network' | 'Kitchen'
+
 type Props = {
-  initialSubTab?: 'Productivity' | 'Network' | 'Kitchen'
+  /** Controlled L2 tab — App.tsx owns this for persistence + Saved Views. */
+  subTab?: SubTab
+  onSubTabChange?: (next: SubTab) => void
   selectedStoreIds: Set<string>
   dateFilter: DateFilter
   onRowClick?: (row: StoreRow) => void
 }
 
 export function StoreView({
-  initialSubTab = 'Productivity',
+  subTab = 'Productivity',
+  onSubTabChange,
   selectedStoreIds,
   dateFilter,
   onRowClick,
 }: Props) {
-  const [subTab, setSubTab] = useState<string>(initialSubTab)
+  const setSubTab = (next: string) => onSubTabChange?.(next as SubTab)
 
   // Rows are derived from the real STORES fixture, filtered to the user's
   // current selection. Values are deterministic per (store, period) so the

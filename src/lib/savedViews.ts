@@ -1,18 +1,32 @@
 import { useSyncExternalStore } from 'react'
 import type { DateFilter } from './dateFilter'
 
-/** A bookmarked filter combination — both axes (stores + date filter) plus
- *  a display name. One view in the list can be marked default; that's what
- *  the app opens to on next launch (when saved-views flag is on).
+/** A bookmarked filter combination plus the screen + tabs the user was on
+ *  when they saved it. Applying a saved view restores all of it: filters,
+ *  base route, and L1/L2 tab state. One view can be marked default; on
+ *  boot the app opens to that view (when saved-views flag is on).
  *
  *  Naming defaults to a generated description ("5 Stores · This Week") to
  *  skip the friction of a naming dialog on save. Future iteration: tap to
- *  rename. */
+ *  rename. Location fields are optional so older views (or views saved
+ *  from a non-Dashboard screen) still apply cleanly. */
+export type SavedViewLocation = {
+  /** BaseRoute string — e.g. 'dashboard', 'inventory', 'leaderboards'. */
+  screen?: string
+  /** Dashboard primary tab — 'Sales' | 'Labor' | 'Store' | 'Product'. */
+  dashboardTab?: string
+  /** Store sub-tab — 'Productivity' | 'Network' | 'Kitchen'. */
+  storeSubTab?: string
+}
+
 export type SavedView = {
   id: string
   name: string
   storeIds: string[]
   dateFilter: DateFilter
+  /** Captured location at save time. Optional for backward compat with
+   *  pre-tab-capture saves; applying treats absent fields as "leave alone." */
+  location?: SavedViewLocation
   isDefault: boolean
   createdAt: number
 }
@@ -125,11 +139,14 @@ export function viewMatches(
 }
 
 /** Add the current state as a new saved view. Idempotent — if an existing
- *  view already matches, returns that one instead of creating a duplicate. */
+ *  view already matches on filters, returns that one instead of creating a
+ *  duplicate. `location` captures screen + tab state so applying the view
+ *  later restores where the user was, not just what they were filtering. */
 export function saveView(
   storeIds: Set<string>,
   filter: DateFilter,
   name: string,
+  location?: SavedViewLocation,
 ): SavedView {
   const existing = state.find((v) => viewMatches(v, storeIds, filter))
   if (existing) return existing
@@ -138,6 +155,7 @@ export function saveView(
     name,
     storeIds: [...storeIds],
     dateFilter: filter,
+    location,
     isDefault: false,
     createdAt: Date.now(),
   }
