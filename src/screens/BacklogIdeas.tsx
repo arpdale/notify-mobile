@@ -1,33 +1,46 @@
-import { ScreenHeader } from '@david-richard/notify-ds'
-import { Menu } from '@david-richard/notify-ds/icons'
+import type { ReactNode } from 'react'
+import { Toggle } from '@david-richard/notify-ds'
+import { Refresh } from '@david-richard/notify-ds/icons'
 import { MenuTargetPage } from '../components/MenuTargetPage'
-import { EmptyState } from '../components/EmptyState'
+import {
+  EXPERIMENTS,
+  useExperiments,
+  type ExperimentKey,
+} from '../lib/experiments'
 
-/** Backlog Ideas — a temporary holding pen for experimental pages reached
- *  from the menu drawer. The index page lists each Idea as a link; each
- *  Idea is a thin placeholder until its real home is decided. */
+/** Optional per-experiment helper action — usually a "reset / replay" for
+ *  demoing first-launch experiences. Rendered as a small icon button to
+ *  the right of the toggle, only when the experiment is currently on. */
+export type ExperimentAction = {
+  label: string
+  icon?: ReactNode
+  onClick: () => void
+}
 
-export type BacklogIdeaId = 'idea1' | 'idea2' | 'idea3'
-
-type IndexProps = {
+type Props = {
   onDashboard: () => void
   onInventory: () => void
   onMenu: () => void
-  onOpenIdea: (id: BacklogIdeaId) => void
+  /** Map of optional helper actions keyed by experiment id. App.tsx wires
+   *  these because the underlying handlers need router + hook access. */
+  experimentActions?: Partial<Record<ExperimentKey, ExperimentAction>>
 }
 
-const IDEAS: { id: BacklogIdeaId; label: string }[] = [
-  { id: 'idea1', label: 'Idea 1' },
-  { id: 'idea2', label: 'Idea 2' },
-  { id: 'idea3', label: 'Idea 3' },
-]
-
+/** Backlog Ideas — the prototype's experiment toggle panel. Each row gates
+ *  one IDEA's surfaces (entry points, routes, UI). Flip during a demo to
+ *  show stakeholders the prototype with or without a given feature.
+ *
+ *  Flags persist to localStorage; URL params (?exp=key, ?exp-off=key)
+ *  override on first load. See lib/experiments.ts. */
 export function BacklogIdeas({
   onDashboard,
   onInventory,
   onMenu,
-  onOpenIdea,
-}: IndexProps) {
+  experimentActions,
+}: Props) {
+  const { state, setExperiment, resetExperiments } = useExperiments()
+  const keys = Object.keys(EXPERIMENTS) as ExperimentKey[]
+
   return (
     <MenuTargetPage
       title="Backlog Ideas"
@@ -35,83 +48,119 @@ export function BacklogIdeas({
       onInventory={onInventory}
       onMenu={onMenu}
     >
+      <p
+        style={{
+          margin: '0 0 16px',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13,
+          color: '#6B7280',
+          lineHeight: 1.5,
+        }}
+      >
+        Toggle experimental capabilities on or off. Changes apply
+        immediately; the rest of the prototype updates in place.
+      </p>
+
       <ul
         style={{
           margin: 0,
           padding: 0,
           listStyle: 'none',
-          display: 'flex',
-          flexDirection: 'column',
           background: '#FFFFFF',
           borderRadius: 12,
           overflow: 'hidden',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
         }}
       >
-        {IDEAS.map((idea, i) => (
-          <li
-            key={idea.id}
-            style={{
-              borderTop: i === 0 ? 'none' : '1px solid #EEE',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => onOpenIdea(idea.id)}
+        {keys.map((key, i) => {
+          const meta = EXPERIMENTS[key]
+          const action = experimentActions?.[key]
+          const isOn = state[key]
+          return (
+            <li
+              key={key}
               style={{
-                width: '100%',
-                border: 0,
-                background: 'transparent',
-                padding: '16px 20px',
-                cursor: 'pointer',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 17,
-                fontWeight: 500,
-                color: '#000',
-                textAlign: 'left',
+                padding: '14px 16px',
+                borderTop: i === 0 ? 'none' : '1px solid #EEE',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
               }}
             >
-              {idea.label}
-            </button>
-          </li>
-        ))}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: '#000',
+                    marginBottom: 2,
+                  }}
+                >
+                  {meta.label}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 13,
+                    color: '#6B7280',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {meta.description}
+                </div>
+              </div>
+              {action && isOn && (
+                <button
+                  type="button"
+                  aria-label={action.label}
+                  title={action.label}
+                  onClick={action.onClick}
+                  style={{
+                    flex: '0 0 auto',
+                    width: 36,
+                    height: 36,
+                    border: '1px solid #E5E7EB',
+                    background: '#FFFFFF',
+                    borderRadius: 999,
+                    cursor: 'pointer',
+                    color: '#1F2329',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {action.icon ?? <Refresh size={16} />}
+                </button>
+              )}
+              <Toggle
+                checked={isOn}
+                onChange={(v) => setExperiment(key, v)}
+              />
+            </li>
+          )
+        })}
       </ul>
-    </MenuTargetPage>
-  )
-}
 
-function IdeaPlaceholder({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <ScreenHeader title={title} onBack={onBack} />
-      <div
+      <button
+        type="button"
+        onClick={resetExperiments}
         style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          background: 'var(--color-surface-app, #F4F4F4)',
-          padding: '12px 16px 24px',
-          display: 'flex',
-          flexDirection: 'column',
+          marginTop: 20,
+          alignSelf: 'flex-start',
+          border: '1px solid #D1D5DB',
+          background: '#FFFFFF',
+          padding: '8px 14px',
+          borderRadius: 999,
+          cursor: 'pointer',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13,
+          fontWeight: 500,
+          color: '#374151',
         }}
       >
-        <EmptyState
-          icon={<Menu size={48} />}
-          title={title}
-          description="Experimental page. Final placement TBD."
-        />
-      </div>
-    </div>
+        Reset to defaults
+      </button>
+    </MenuTargetPage>
   )
-}
-
-export function Idea1({ onBack }: { onBack: () => void }) {
-  return <IdeaPlaceholder title="Idea 1" onBack={onBack} />
-}
-
-export function Idea2({ onBack }: { onBack: () => void }) {
-  return <IdeaPlaceholder title="Idea 2" onBack={onBack} />
-}
-
-export function Idea3({ onBack }: { onBack: () => void }) {
-  return <IdeaPlaceholder title="Idea 3" onBack={onBack} />
 }

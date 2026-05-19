@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useMemo } from 'react'
 import { TabBar } from '@david-richard/notify-ds'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
+import { STORES, type Store } from '../../lib/stores'
+import type { DateFilter } from '../../lib/dateFilter'
 
 const SUB_TABS = ['Productivity', 'Network', 'Kitchen']
 
@@ -9,84 +11,88 @@ type StoreRow = {
   name: string
   netSales: string
   laborPct: string
-  /** 0..1 — null when offline */
-  online: number | null
-  /** N out of M registers online */
+  online: number
   onlineFraction: string
   avgTime: string
   orders: number
 }
 
-const DEMO_ROWS: StoreRow[] = [
-  {
-    id: 'r1',
-    name: 'Anit Store Bethesda Lab',
-    netSales: '$1,595.80',
-    laborPct: '$0.00',
-    online: 0.88,
-    onlineFraction: '88% (7/8)',
-    avgTime: '00:00:00',
-    orders: 0,
-  },
-  {
-    id: 'r2',
-    name: "Nataliia's Bakery",
-    netSales: '$144.00',
-    laborPct: '$0.00',
-    online: 0.91,
-    onlineFraction: '91% (10/11)',
-    avgTime: '00:00:00',
-    orders: 0,
-  },
-  {
-    id: 'r3',
-    name: 'MWO PLEASE DO NOT TOUCH',
-    netSales: '$50.00',
-    laborPct: '$0.00',
-    online: 0.91,
-    onlineFraction: '91% (10/11)',
-    avgTime: '00:02:29',
-    orders: 16,
-  },
-  {
-    id: 'r4',
-    name: 'Fede Store',
-    netSales: '$12.00',
-    laborPct: '$0.00',
-    online: 0.93,
-    onlineFraction: '93% (10/11)',
-    avgTime: '00:00:58',
-    orders: 167,
-  },
-  {
-    id: 'r5',
-    name: 'Emi Store',
-    netSales: '$5.15',
-    laborPct: '$0.00',
-    online: 1,
-    onlineFraction: '100% (15/15)',
-    avgTime: '00:01:49',
-    orders: 164,
-  },
-  ...Array.from({ length: 5 }).map((_, i) => ({
-    id: `bug-${i + 1}`,
-    name: 'Store for Bug 1021',
-    netSales: '$0.00',
-    laborPct: '$0.00',
-    online: 1,
-    onlineFraction: i === 0 ? '100% (2/2)' : '100% (11/11)',
-    avgTime: i < 2 ? '00:01:11' : '00:00:00',
-    orders: [175, 148, 0, 0, 0][i] ?? 0,
-  })),
-]
+/** FNV-1a-ish 32-bit hash. Enough entropy for deterministic prototype seeds. */
+function hash(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+/** Mulberry32 PRNG — repeatable, well-distributed from a 32-bit seed. */
+function rng(seed: number) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function formatMoney(n: number): string {
+  return `$${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
+}
+
+function buildRow(store: Store, periodKey: string): StoreRow {
+  const r = rng(hash(`${store.id}|${periodKey}`))
+  const netSales = r() * 4800 + 200
+  const labor = r() * 27 + 8
+  const totalRegisters = Math.floor(r() * 8) + 6
+  const downRegisters = r() < 0.55 ? 0 : Math.floor(r() * 2) + 1
+  const onlineRegisters = Math.max(1, totalRegisters - downRegisters)
+  const online = onlineRegisters / totalRegisters
+  const avgSecs = Math.floor(r() * 240) + 25
+  const m = Math.floor(avgSecs / 60)
+  const s = avgSecs - m * 60
+  return {
+    id: store.id,
+    name: store.name,
+    netSales: formatMoney(netSales),
+    laborPct: `${labor.toFixed(1)}%`,
+    online,
+    onlineFraction: `${Math.round(online * 100)}% (${onlineRegisters}/${totalRegisters})`,
+    avgTime: `00:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`,
+    orders: Math.floor(r() * 220),
+  }
+}
+
+type SubTab = 'Productivity' | 'Network' | 'Kitchen'
 
 type Props = {
-  initialSubTab?: 'Productivity' | 'Network' | 'Kitchen'
+  /** Controlled L2 tab — App.tsx owns this for persistence + Saved Views. */
+  subTab?: SubTab
+  onSubTabChange?: (next: SubTab) => void
+  selectedStoreIds: Set<string>
+  dateFilter: DateFilter
   onRowClick?: (row: StoreRow) => void
 }
 
-export function StoreView({ initialSubTab = 'Productivity', onRowClick }: Props) {
-  const [subTab, setSubTab] = useState<string>(initialSubTab)
+export function StoreView({
+  subTab = 'Productivity',
+  onSubTabChange,
+  selectedStoreIds,
+  dateFilter,
+  onRowClick,
+}: Props) {
+  const setSubTab = (next: string) => onSubTabChange?.(next as SubTab)
+
+  // Rows are derived from the real STORES fixture, filtered to the user's
+  // current selection. Values are deterministic per (store, period) so the
+  // same view reloads identically and switching dates feels like fresh data.
+  const rows = useMemo(() => {
+    const periodKey = `${dateFilter.mode}|${dateFilter.period}|${dateFilter.customDate ?? ''}`
+    return STORES.filter((s) => selectedStoreIds.has(s.id)).map((s) =>
+      buildRow(s, periodKey),
+    )
+  }, [selectedStoreIds, dateFilter])
 
   return (
     <>
@@ -94,9 +100,11 @@ export function StoreView({ initialSubTab = 'Productivity', onRowClick }: Props)
         <TabBar tabs={SUB_TABS} value={subTab} onValueChange={setSubTab} stretch />
       </div>
 
-      {subTab === 'Productivity' && <ProductivityView onRowClick={onRowClick} />}
-      {subTab === 'Network' && <NetworkView onRowClick={onRowClick} />}
-      {subTab === 'Kitchen' && <KitchenView onRowClick={onRowClick} />}
+      {subTab === 'Productivity' && (
+        <ProductivityView rows={rows} onRowClick={onRowClick} />
+      )}
+      {subTab === 'Network' && <NetworkView rows={rows} onRowClick={onRowClick} />}
+      {subTab === 'Kitchen' && <KitchenView rows={rows} onRowClick={onRowClick} />}
     </>
   )
 }
@@ -119,11 +127,7 @@ function RightLink({ children }: { children: React.ReactNode }) {
 }
 
 function StoreNameCell({ name }: { name: string }) {
-  return (
-    <span style={{ fontWeight: 500 }}>
-      {name}
-    </span>
-  )
+  return <span style={{ fontWeight: 500 }}>{name}</span>
 }
 
 function ValueWithChevron({ children }: { children: React.ReactNode }) {
@@ -137,7 +141,9 @@ function ValueWithChevron({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ProductivityView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }) {
+type ViewProps = { rows: StoreRow[]; onRowClick?: (row: StoreRow) => void }
+
+function ProductivityView({ rows, onRowClick }: ViewProps) {
   const columns: DataTableColumn<StoreRow>[] = [
     {
       key: 'name',
@@ -153,7 +159,7 @@ function ProductivityView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }
     },
     {
       key: 'laborPct',
-      header: 'Labor / Ne…',
+      header: 'Labor / Net',
       align: 'right',
       render: (row) => <ValueWithChevron>{row.laborPct}</ValueWithChevron>,
     },
@@ -163,7 +169,7 @@ function ProductivityView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }
       <RightLink>≡ Customize</RightLink>
       <DataTable
         columns={columns}
-        rows={DEMO_ROWS}
+        rows={rows}
         getRowKey={(r) => r.id}
         onRowClick={onRowClick}
       />
@@ -171,7 +177,7 @@ function ProductivityView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }
   )
 }
 
-function NetworkView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }) {
+function NetworkView({ rows, onRowClick }: ViewProps) {
   const columns: DataTableColumn<StoreRow>[] = [
     {
       key: 'name',
@@ -183,7 +189,7 @@ function NetworkView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }) {
       header: 'Online',
       align: 'right',
       render: (row) => {
-        const allOnline = row.online !== null && row.online >= 1
+        const allOnline = row.online >= 1
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <span
@@ -207,14 +213,14 @@ function NetworkView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }) {
   return (
     <DataTable
       columns={columns}
-      rows={DEMO_ROWS}
+      rows={rows}
       getRowKey={(r) => r.id}
       onRowClick={onRowClick}
     />
   )
 }
 
-function KitchenView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }) {
+function KitchenView({ rows, onRowClick }: ViewProps) {
   const columns: DataTableColumn<StoreRow>[] = [
     {
       key: 'name',
@@ -247,7 +253,7 @@ function KitchenView({ onRowClick }: { onRowClick?: (r: StoreRow) => void }) {
       <RightLink>Fulfilment</RightLink>
       <DataTable
         columns={columns}
-        rows={DEMO_ROWS}
+        rows={rows}
         getRowKey={(r) => r.id}
         onRowClick={onRowClick}
       />

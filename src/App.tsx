@@ -1,6 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { SignIn } from './screens/SignIn'
-import { Dashboard, type DashboardTile } from './screens/Dashboard'
+import {
+  Dashboard,
+  type DashboardTab,
+  type DashboardTile,
+  type StoreSubTab,
+} from './screens/Dashboard'
 import { ResetPassword } from './screens/ResetPassword'
 import { TwoStepVerification } from './screens/TwoStepVerification'
 import { ChooseNewPassword } from './screens/ChooseNewPassword'
@@ -15,13 +20,7 @@ import {
   KitchenIntelligence,
   ProductTour,
 } from './screens/menuTargets'
-import {
-  BacklogIdeas,
-  Idea1,
-  Idea2,
-  Idea3,
-  type BacklogIdeaId,
-} from './screens/BacklogIdeas'
+import { BacklogIdeas } from './screens/BacklogIdeas'
 import { EnableFaceId } from './screens/EnableFaceId'
 import { ThanksgivingFeast } from './screens/ThanksgivingFeast'
 import { Splash } from './screens/Splash'
@@ -33,7 +32,20 @@ import { Leaderboards } from './screens/Leaderboards'
 import { StoresPicker } from './screens/StoresPicker'
 import { FilterByDate } from './screens/FilterByDate'
 import { SlideIn } from './components/SlideIn'
-import { DEFAULT_SELECTED_STORE_IDS, formatStoreLabel } from './lib/stores'
+import { WhatsNew } from './screens/WhatsNew'
+import { WhatsNewToast } from './components/WhatsNewToast'
+import { useWhatsNew } from './lib/whatsNew'
+import { getExperiment, useExperiment } from './lib/experiments'
+import { SavedViewsStrip } from './components/SavedViewsStrip'
+import {
+  describeView,
+  getDefaultView,
+  saveView,
+  useSavedViews,
+  viewMatches,
+  type SavedView,
+} from './lib/savedViews'
+import { DEFAULT_SELECTED_STORE_IDS, STORES, formatStoreLabel } from './lib/stores'
 import {
   DEFAULT_FILTER,
   deserializeFilter,
@@ -44,6 +56,46 @@ import {
 
 const STORES_LS_KEY = 'notify-selected-store-ids'
 const FILTER_LS_KEY = 'notify-date-filter'
+const LAST_ROUTE_LS_KEY = 'notify-last-route'
+const DASHBOARD_TAB_LS_KEY = 'notify-dashboard-tab'
+const STORE_SUBTAB_LS_KEY = 'notify-store-subtab'
+
+const DASHBOARD_TABS: readonly DashboardTab[] = ['Sales', 'Labor', 'Store', 'Product']
+const STORE_SUBTABS: readonly StoreSubTab[] = ['Productivity', 'Network', 'Kitchen']
+
+/** Base routes that are safe to restore on launch — auth flow and error
+ *  states are excluded so a previous crash doesn't trap the user. Kept as a
+ *  literal so the type checker enforces it stays a subset of BaseRoute. */
+const RESTORABLE_ROUTES = new Set<BaseRoute>([
+  'dashboard',
+  'inventory',
+  'kitchen-intelligence',
+  'settings',
+  'forecast',
+  'digital-channels',
+  'checks-search',
+  'leaderboards',
+  'analyze',
+  'product-tour',
+  'backlog-ideas',
+  'whats-new',
+])
+
+function loadLastRoute(): BaseRoute | null {
+  try {
+    const raw = localStorage.getItem(LAST_ROUTE_LS_KEY)
+    if (raw && RESTORABLE_ROUTES.has(raw as BaseRoute)) {
+      return raw as BaseRoute
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+function storeNameById(id: string): string | undefined {
+  return STORES.find((s) => s.id === id)?.name
+}
 
 function loadSelectedStoreIds(): Set<string> {
   try {
@@ -71,6 +123,30 @@ function loadDateFilter(): DateFilter {
     // ignore
   }
   return DEFAULT_FILTER
+}
+
+function loadDashboardTab(): DashboardTab {
+  try {
+    const raw = localStorage.getItem(DASHBOARD_TAB_LS_KEY)
+    if (raw && DASHBOARD_TABS.includes(raw as DashboardTab)) {
+      return raw as DashboardTab
+    }
+  } catch {
+    // ignore
+  }
+  return 'Sales'
+}
+
+function loadStoreSubTab(): StoreSubTab {
+  try {
+    const raw = localStorage.getItem(STORE_SUBTAB_LS_KEY)
+    if (raw && STORE_SUBTABS.includes(raw as StoreSubTab)) {
+      return raw as StoreSubTab
+    }
+  } catch {
+    // ignore
+  }
+  return 'Productivity'
 }
 
 // Chart detail screens are lazy-loaded so recharts (~150kB gz) ships in its
@@ -138,6 +214,7 @@ type BaseRoute =
   | 'analyze'
   | 'product-tour'
   | 'backlog-ideas'
+  | 'whats-new'
 
 /** Routes that push on top of the base layer with a right-to-left slide. */
 type PushRoute =
@@ -148,9 +225,6 @@ type PushRoute =
   | 'discounts'
   | 'taxes'
   | 'service-charges'
-  | 'idea1'
-  | 'idea2'
-  | 'idea3'
 
 /** Map base routes back to the menu-item id so MenuOverlay can bold the
  *  active page when reopened. */
@@ -164,12 +238,7 @@ const ROUTE_TO_MENU_ITEM: Partial<Record<BaseRoute, MenuItemId>> = {
   analyze: 'analyze',
   'product-tour': 'product-tour',
   'backlog-ideas': 'backlog-ideas',
-}
-
-const IDEA_TO_ROUTE: Record<BacklogIdeaId, PushRoute> = {
-  idea1: 'idea1',
-  idea2: 'idea2',
-  idea3: 'idea3',
+  'whats-new': 'whats-new',
 }
 
 const TILE_ROUTES: Partial<Record<DashboardTile, PushRoute>> = {
@@ -188,7 +257,56 @@ const DEMO_CODES = {
 
 const SPLASH_VERSION_PROMPT_DELAY_MS = 1200
 
+/** Computed once at App mount — picks where the user lands after auth, the
+ *  filter state to seed, and which tabs to surface. Default saved view wins
+ *  on all axes; otherwise restore the last screen (if the flag is on) and
+ *  the last persisted tab state; otherwise sensible defaults. */
+function computeBootState(): {
+  postAuthRoute: BaseRoute
+  storeIds: Set<string>
+  filter: DateFilter
+  dashboardTab: DashboardTab
+  storeSubTab: StoreSubTab
+} {
+  const savedViewsOn = getExperiment('saved-views')
+  const restoreLastOn = getExperiment('restore-last-view')
+
+  if (savedViewsOn) {
+    const def = getDefaultView()
+    if (def) {
+      const loc = def.location
+      const screen = (loc?.screen && RESTORABLE_ROUTES.has(loc.screen as BaseRoute))
+        ? (loc.screen as BaseRoute)
+        : 'dashboard'
+      const dashboardTab =
+        loc?.dashboardTab && DASHBOARD_TABS.includes(loc.dashboardTab as DashboardTab)
+          ? (loc.dashboardTab as DashboardTab)
+          : loadDashboardTab()
+      const storeSubTab =
+        loc?.storeSubTab && STORE_SUBTABS.includes(loc.storeSubTab as StoreSubTab)
+          ? (loc.storeSubTab as StoreSubTab)
+          : loadStoreSubTab()
+      return {
+        postAuthRoute: screen,
+        storeIds: new Set(def.storeIds),
+        filter: def.dateFilter,
+        dashboardTab,
+        storeSubTab,
+      }
+    }
+  }
+
+  return {
+    postAuthRoute: (restoreLastOn ? loadLastRoute() : null) ?? 'dashboard',
+    storeIds: loadSelectedStoreIds(),
+    filter: loadDateFilter(),
+    dashboardTab: loadDashboardTab(),
+    storeSubTab: loadStoreSubTab(),
+  }
+}
+
 function App() {
+  const boot = useMemo(computeBootState, [])
   const [baseRoute, setBaseRoute] = useState<BaseRoute>('splash')
   const [push, setPush] = useState<PushRoute | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -200,11 +318,49 @@ function App() {
     string | undefined
   >(undefined)
 
+  // What's New release-awareness layer (SB-01 through SB-06). The hook owns
+  // the version-delta gate and last_seen storage; this component only decides
+  // when to mount the toast (dashboard only, once per launch) and how to wire
+  // its actions into the existing router. Storyboard IDEA-3760, gated behind
+  // the `whats-new` experiment so the whole feature can be toggled off in
+  // the Backlog Ideas debug panel.
+  const whatsNewEnabled = useExperiment('whats-new')
+  const savedViewsEnabled = useExperiment('saved-views')
+  const restoreLastViewEnabled = useExperiment('restore-last-view')
+
+  // Persist current base route so restore-last-view can replay it on next
+  // launch. Only restorable routes are written — auth/error states are
+  // skipped intentionally so a previous crash doesn't trap the user.
+  useEffect(() => {
+    if (!restoreLastViewEnabled) return
+    if (!RESTORABLE_ROUTES.has(baseRoute)) return
+    try {
+      localStorage.setItem(LAST_ROUTE_LS_KEY, baseRoute)
+    } catch {
+      // ignore
+    }
+  }, [baseRoute, restoreLastViewEnabled])
+  const {
+    unseenMaterial,
+    featured,
+    pageReleases,
+    lastSeen,
+    markVersionSeen,
+    markPageVisited,
+    resetForDemo,
+  } = useWhatsNew()
+  const [whatsNewToastDismissed, setWhatsNewToastDismissed] = useState(false)
+  const showWhatsNewToast =
+    whatsNewEnabled &&
+    unseenMaterial &&
+    !whatsNewToastDismissed &&
+    baseRoute === 'dashboard'
+
   // Store selection lives at the App level — every screen with a context
   // bar reads the same N, and the picker writes back into the same set.
   // Persisted to localStorage so a refresh doesn't reset the user's choice.
   const [selectedStoreIds, setSelectedStoreIds] = useState<Set<string>>(
-    loadSelectedStoreIds,
+    () => boot.storeIds,
   )
   useEffect(() => {
     try {
@@ -218,7 +374,7 @@ function App() {
 
   // Date filter — same pattern as stores. App owns the filter; the picker
   // sheet is fully controlled. dateLabel feeds every ContextBar consumer.
-  const [dateFilter, setDateFilter] = useState<DateFilter>(loadDateFilter)
+  const [dateFilter, setDateFilter] = useState<DateFilter>(() => boot.filter)
   useEffect(() => {
     try {
       localStorage.setItem(FILTER_LS_KEY, serializeFilter(dateFilter))
@@ -232,6 +388,78 @@ function App() {
   // app would refresh on visibility change.
   const today = useMemo(() => new Date(), [])
   const dateLabel = formatPillLabel(dateFilter, today)
+
+  // Dashboard tab state (L1) and Store sub-tab (L2) live at the App level
+  // so they survive: (a) navigating away and back, (b) close/reopen via
+  // localStorage, and (c) Saved Views capture. Persistence is independent
+  // of restore-last-view — these are tabs, not screens, so the user always
+  // expects them to be remembered within the same session at minimum.
+  const [dashboardTab, setDashboardTab] = useState<DashboardTab>(
+    () => boot.dashboardTab,
+  )
+  useEffect(() => {
+    try {
+      localStorage.setItem(DASHBOARD_TAB_LS_KEY, dashboardTab)
+    } catch {
+      // ignore
+    }
+  }, [dashboardTab])
+
+  const [storeSubTab, setStoreSubTab] = useState<StoreSubTab>(
+    () => boot.storeSubTab,
+  )
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORE_SUBTAB_LS_KEY, storeSubTab)
+    } catch {
+      // ignore
+    }
+  }, [storeSubTab])
+
+  // Saved views state — reactive store backed by localStorage. Multiple
+  // surfaces (ContextBar star, both pickers) read this list and write to
+  // it, so a flag flip or save action propagates instantly. Positioned
+  // here so the matchingSavedView calculation can reference the filter
+  // state declared above.
+  const {
+    views: savedViews,
+    deleteView,
+    setDefaultView,
+  } = useSavedViews()
+  const matchingSavedView = savedViews.find((v) =>
+    viewMatches(v, selectedStoreIds, dateFilter),
+  )
+  const isCurrentSaved = Boolean(matchingSavedView)
+
+  const handleSaveCurrentView = () => {
+    if (!savedViewsEnabled) return
+    if (isCurrentSaved) return
+    const name = describeView(selectedStoreIds, dateFilter, storeNameById)
+    saveView(selectedStoreIds, dateFilter, name, {
+      screen: baseRoute,
+      dashboardTab,
+      storeSubTab,
+    })
+  }
+
+  const applySavedView = (v: SavedView) => {
+    setSelectedStoreIds(new Set(v.storeIds))
+    setDateFilter(v.dateFilter)
+    if (v.location?.dashboardTab && DASHBOARD_TABS.includes(v.location.dashboardTab as DashboardTab)) {
+      setDashboardTab(v.location.dashboardTab as DashboardTab)
+    }
+    if (v.location?.storeSubTab && STORE_SUBTABS.includes(v.location.storeSubTab as StoreSubTab)) {
+      setStoreSubTab(v.location.storeSubTab as StoreSubTab)
+    }
+    // goto() closes the pickers as part of its reset; calling it last lets
+    // the tab/filter writes commit first so the destination renders fresh.
+    if (v.location?.screen && RESTORABLE_ROUTES.has(v.location.screen as BaseRoute)) {
+      goto(v.location.screen as BaseRoute)
+    } else {
+      setStoresPickerOpen(false)
+      setDateFilterOpen(false)
+    }
+  }
 
   useEffect(() => {
     if (baseRoute !== 'splash') return
@@ -265,7 +493,7 @@ function App() {
       setChooseNewPasswordError('Ooops, we are having problems')
     } else {
       setChooseNewPasswordError(undefined)
-      goto('dashboard')
+      goto(boot.postAuthRoute)
     }
   }
 
@@ -302,7 +530,7 @@ function App() {
         <SignIn
           onSignIn={() => goto('two-step-verification')}
           onForgotPassword={() => goto('reset-password')}
-          onDevSkip={() => goto('dashboard')}
+          onDevSkip={() => goto(boot.postAuthRoute)}
         />
       )}
       {baseRoute === 'reset-password' && (
@@ -312,14 +540,14 @@ function App() {
             setChooseNewPasswordError(undefined)
             goto('choose-new-password')
           }}
-          onDevSkip={() => goto('dashboard')}
+          onDevSkip={() => goto(boot.postAuthRoute)}
         />
       )}
       {baseRoute === 'two-step-verification' && (
         <TwoStepVerification
           onBack={() => goto('sign-in')}
           onContinue={handleTwoFactor}
-          onDevSkip={() => goto('dashboard')}
+          onDevSkip={() => goto(boot.postAuthRoute)}
         />
       )}
       {baseRoute === 'choose-new-password' && (
@@ -327,16 +555,16 @@ function App() {
           onBack={() => goto('sign-in')}
           onSubmit={handleChooseNewPassword}
           errorMessage={chooseNewPasswordError}
-          onDevSkip={() => goto('dashboard')}
+          onDevSkip={() => goto(boot.postAuthRoute)}
         />
       )}
       {baseRoute === 'enable-face-id' && (
         <>
-          <SignIn onSignIn={() => undefined} onDevSkip={() => goto('dashboard')} />
+          <SignIn onSignIn={() => undefined} onDevSkip={() => goto(boot.postAuthRoute)} />
           <EnableFaceId
             open
-            onEnable={() => goto('dashboard')}
-            onSkip={() => goto('dashboard')}
+            onEnable={() => goto(boot.postAuthRoute)}
+            onSkip={() => goto(boot.postAuthRoute)}
           />
         </>
       )}
@@ -351,6 +579,12 @@ function App() {
           onPickDate={openDateFilter}
           storeLabel={storeLabel}
           dateLabel={dateLabel}
+          onSaveView={savedViewsEnabled ? handleSaveCurrentView : undefined}
+          currentViewSaved={savedViewsEnabled && isCurrentSaved}
+          tab={dashboardTab}
+          onTabChange={setDashboardTab}
+          storeSubTab={storeSubTab}
+          onStoreSubTabChange={setStoreSubTab}
           selectedStoreIds={selectedStoreIds}
           dateFilter={dateFilter}
           today={today}
@@ -372,12 +606,16 @@ function App() {
           state="error"
           onRefresh={() => goto('dashboard')}
           errorMessage="Ooops, we are having problems"
+          tab={dashboardTab}
+          onTabChange={setDashboardTab}
+          storeSubTab={storeSubTab}
+          onStoreSubTabChange={setStoreSubTab}
         />
       )}
       {baseRoute === 'network-error' && (
         <NetworkError
           onRefresh={() => goto('sign-in')}
-          onDevSkip={() => goto('dashboard')}
+          onDevSkip={() => goto(boot.postAuthRoute)}
         />
       )}
 
@@ -436,7 +674,33 @@ function App() {
           onDashboard={() => goto('dashboard')}
           onInventory={() => goto('inventory')}
           onMenu={() => setMenuOpen(true)}
-          onOpenIdea={(id) => setPush(IDEA_TO_ROUTE[id])}
+          experimentActions={{
+            'whats-new': {
+              label: 'Reset What\'s New (re-fire toast)',
+              onClick: () => {
+                resetForDemo()
+                setWhatsNewToastDismissed(false)
+                goto('dashboard')
+              },
+            },
+          }}
+        />
+      )}
+      {baseRoute === 'whats-new' && whatsNewEnabled && (
+        <WhatsNew
+          releases={pageReleases}
+          lastSeen={lastSeen}
+          onPageVisited={markPageVisited}
+          onDashboard={() => goto('dashboard')}
+          onInventory={() => goto('inventory')}
+          onMenu={() => setMenuOpen(true)}
+          onOpenRelease={(route) => {
+            // Deep-link from a release card. The route string comes from the
+            // release manifest and is expected to be a valid BaseRoute. The
+            // first-land coachmark (SB-05 inline pointer) is the next slice
+            // — not in this spike.
+            goto(route as BaseRoute)
+          }}
         />
       )}
       {baseRoute === 'checks-search' && (
@@ -541,16 +805,6 @@ function App() {
           />
         </Suspense>
       </SlideIn>
-      <SlideIn open={push === 'idea1'} direction="right" onDismiss={closePush}>
-        <Idea1 onBack={closePush} />
-      </SlideIn>
-      <SlideIn open={push === 'idea2'} direction="right" onDismiss={closePush}>
-        <Idea2 onBack={closePush} />
-      </SlideIn>
-      <SlideIn open={push === 'idea3'} direction="right" onDismiss={closePush}>
-        <Idea3 onBack={closePush} />
-      </SlideIn>
-
       {/* ── Full-screen modals (slide up from bottom) ──────────── */}
       <SlideIn
         open={storesPickerOpen}
@@ -561,6 +815,17 @@ function App() {
           onBack={closeStoresPicker}
           selectedIds={selectedStoreIds}
           onChange={setSelectedStoreIds}
+          savedViewsSlot={
+            savedViewsEnabled ? (
+              <SavedViewsStrip
+                views={savedViews}
+                isMatchById={(id) => matchingSavedView?.id === id}
+                onApply={applySavedView}
+                onDelete={deleteView}
+                onSetDefault={setDefaultView}
+              />
+            ) : undefined
+          }
         />
       </SlideIn>
       <SlideIn
@@ -573,6 +838,17 @@ function App() {
           onChange={setDateFilter}
           today={today}
           onDismiss={closeDateFilter}
+          savedViewsSlot={
+            savedViewsEnabled ? (
+              <SavedViewsStrip
+                views={savedViews}
+                isMatchById={(id) => matchingSavedView?.id === id}
+                onApply={applySavedView}
+                onDelete={deleteView}
+                onSetDefault={setDefaultView}
+              />
+            ) : undefined
+          }
         />
       </SlideIn>
 
@@ -599,11 +875,30 @@ function App() {
         onAnalyze={() => goto('analyze')}
         onProductTour={() => goto('product-tour')}
         onBacklogIdeas={() => goto('backlog-ideas')}
+        onWhatsNew={whatsNewEnabled ? () => goto('whats-new') : undefined}
+        whatsNewUnread={whatsNewEnabled && unseenMaterial}
         onLogOut={() => goto('sign-in')}
       />
       <Notifications
         open={notificationsOpen}
         onDismiss={() => setNotificationsOpen(false)}
+      />
+
+      {/* What's New toast — slim top banner, dashboard only, one beat of
+       *  attention. Tapping Learn more drops the user on the page (and clears
+       *  the unread state); the X just dismisses for this launch. */}
+      <WhatsNewToast
+        open={showWhatsNewToast}
+        title={featured.title}
+        summary={featured.summary}
+        onLearnMore={() => {
+          setWhatsNewToastDismissed(true)
+          goto('whats-new')
+        }}
+        onDismiss={() => {
+          setWhatsNewToastDismissed(true)
+          markVersionSeen()
+        }}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Button, Checkbox, InputField, ScreenHeader } from '@david-richard/notify-ds'
 import { STORES, type Store } from '../lib/stores'
 
@@ -8,9 +8,12 @@ type Props = {
   selectedIds: Set<string>
   /** Selection changed (toggle / preset button) — App writes the truth */
   onChange: (next: Set<string>) => void
+  /** Optional saved-views surface rendered at the top of the body. App.tsx
+   *  passes the SavedViewsStrip when the flag is on; otherwise undefined. */
+  savedViewsSlot?: ReactNode
 }
 
-export function StoresPicker({ onBack, selectedIds, onChange }: Props) {
+export function StoresPicker({ onBack, selectedIds, onChange, savedViewsSlot }: Props) {
   const [query, setQuery] = useState('')
 
   const filtered = useMemo(() => {
@@ -44,6 +47,8 @@ export function StoresPicker({ onBack, selectedIds, onChange }: Props) {
           padding: '12px 16px 120px',
         }}
       >
+        {savedViewsSlot}
+
         <p
           style={{
             margin: '0 0 12px',

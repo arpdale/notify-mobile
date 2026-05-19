@@ -14,6 +14,7 @@ export type MenuItemId =
   | 'analyze'
   | 'product-tour'
   | 'backlog-ideas'
+  | 'whats-new'
 
 type MenuItem = {
   id: MenuItemId
@@ -42,6 +43,11 @@ type Props = {
   onAnalyze?: () => void
   onProductTour?: () => void
   onBacklogIdeas?: () => void
+  onWhatsNew?: () => void
+  /** When true, the What's New row renders with a NEW pill — surfaced from
+   *  App.tsx via the useWhatsNew hook so the drawer can become the long-tail
+   *  awareness path for users who dismissed (or never saw) the toast. */
+  whatsNewUnread?: boolean
   onLogOut?: () => void
   version?: string
 }
@@ -59,6 +65,8 @@ export function MenuOverlay({
   onAnalyze,
   onProductTour,
   onBacklogIdeas,
+  onWhatsNew,
+  whatsNewUnread = false,
   onLogOut,
   version = 'Version 3.6.222',
 }: Props) {
@@ -76,12 +84,27 @@ export function MenuOverlay({
     ...(onLeaderboards
       ? [{ id: 'leaderboards' as const, label: 'Leaderboards', onClick: onLeaderboards }]
       : []),
-    { id: 'backlog-ideas', label: 'Backlog Ideas', onClick: onBacklogIdeas },
+    // What's New only renders when its experiment flag is on. App.tsx omits
+    // `onWhatsNew` when the flag is off, which removes the row entirely so
+    // the prototype looks identical to the pre-IDEA-3760 baseline.
+    ...(onWhatsNew
+      ? [
+          {
+            id: 'whats-new' as const,
+            label: "What's New",
+            onClick: onWhatsNew,
+            badge: whatsNewUnread ? <Badge variant="brand">NEW</Badge> : undefined,
+          },
+        ]
+      : []),
   ]
 
   const support: MenuItem[] = [
     { id: 'analyze', label: 'Analyze', onClick: onAnalyze },
     { id: 'product-tour', label: 'Product Tour', onClick: onProductTour },
+    // Backlog Ideas lives under Support — it's the prototype's debug panel
+    // for toggling experiments on/off, not a product feature.
+    { id: 'backlog-ideas', label: 'Backlog Ideas', onClick: onBacklogIdeas },
   ]
 
   return (
@@ -153,3 +176,4 @@ export function MenuOverlay({
     </BottomSheet>
   )
 }
+

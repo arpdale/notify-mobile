@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Radio, Switcher, Toggle } from '@david-richard/notify-ds'
 import { ChevronLeft } from '@david-richard/notify-ds/icons'
 import {
@@ -21,9 +22,12 @@ type Props = {
    *  testability + so the picker is decoupled from the system clock. */
   today: Date
   onDismiss: () => void
+  /** Optional saved-views surface rendered just under the header. App.tsx
+   *  passes the SavedViewsStrip when the flag is on; otherwise undefined. */
+  savedViewsSlot?: ReactNode
 }
 
-export function FilterByDate({ filter, onChange, today, onDismiss }: Props) {
+export function FilterByDate({ filter, onChange, today, onDismiss, savedViewsSlot }: Props) {
   const setMode = (next: DateMode) => {
     // When the user switches tabs, replace period + compare with sensible
     // defaults for the new mode rather than carrying over stale values.
@@ -107,6 +111,8 @@ export function FilterByDate({ filter, onChange, today, onDismiss }: Props) {
         </h2>
         <span />
       </header>
+
+      {savedViewsSlot}
 
       <div style={{ marginBottom: 16 }}>
         <Switcher

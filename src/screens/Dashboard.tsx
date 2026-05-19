@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Button, TabBar } from '@david-richard/notify-ds'
 import logoLockup from '@david-richard/notify-ds/assets/logo-notify-lockup.svg?url'
 import { Info } from '@david-richard/notify-ds/icons'
@@ -33,10 +32,13 @@ type Props = {
   onRefresh?: () => void
   /** When set, renders the error toast pinned above the bottom nav */
   errorMessage?: string
-  /** Initial primary tab (Sales / Labor / Store / Product) */
-  initialTab?: DashboardTab
-  /** Initial sub-tab — only honoured when initialTab is "Store" */
-  initialStoreSubTab?: StoreSubTab
+  /** Controlled L1 primary tab — App owns this so it survives navigation
+   *  away/back and is captured/restored by Saved Views. */
+  tab?: DashboardTab
+  onTabChange?: (next: DashboardTab) => void
+  /** Controlled L2 Store sub-tab — same rationale as L1. */
+  storeSubTab?: StoreSubTab
+  onStoreSubTabChange?: (next: StoreSubTab) => void
   /** Called when the bottom-nav "Menu" item is selected */
   onMenu?: () => void
   /** Called when the bottom-nav "Inventory" item is selected */
@@ -52,6 +54,11 @@ type Props = {
   /** Overrides for the context bar selector labels */
   storeLabel?: string
   dateLabel?: string
+  /** When set, the ContextBar shows a star action that calls this on tap.
+   *  `currentViewSaved` flips the icon to filled. App.tsx wires these only
+   *  when the saved-views experiment is on. */
+  onSaveView?: () => void
+  currentViewSaved?: boolean
   /** Live inputs driving tile data — Sales/Labor views recompute when any
    *  of these change. Optional so the error state can mount without them. */
   selectedStoreIds?: Set<string>
@@ -65,8 +72,10 @@ export function Dashboard({
   state = 'ready',
   onRefresh,
   errorMessage,
-  initialTab = 'Sales',
-  initialStoreSubTab,
+  tab = 'Sales',
+  onTabChange,
+  storeSubTab = 'Productivity',
+  onStoreSubTabChange,
   onMenu,
   onInventory,
   onTileClick,
@@ -75,11 +84,17 @@ export function Dashboard({
   onPickDate,
   storeLabel = 'StoreName',
   dateLabel = '01/06/26',
+  onSaveView,
+  currentViewSaved = false,
   selectedStoreIds,
   dateFilter,
   today,
 }: Props = {}) {
-  const [tab, setTab] = useState<string>(initialTab)
+  // Tab state is controlled by App.tsx — onTabChange is the bridge back.
+  // Falling back to a no-op keeps the error-state mount (no parent state)
+  // visually consistent without exploding when a user taps tabs.
+  const setTab = (next: string) => onTabChange?.(next as DashboardTab)
+  const setStoreSubTab = (next: StoreSubTab) => onStoreSubTabChange?.(next)
   // Each view (SalesView / LaborView) now owns its own data lifecycle via
   // useEffect against the selectors — the old 600ms skeleton timer is gone.
   // Defaults below cover the error-state mount where data props aren't
@@ -110,6 +125,8 @@ export function Dashboard({
         dateLabel={dateLabel}
         onStoreClick={onPickStores}
         onDateClick={onPickDate}
+        onSaveView={onSaveView}
+        saved={currentViewSaved}
       />
 
       <div
@@ -156,7 +173,12 @@ export function Dashboard({
         )}
 
         {state === 'ready' && tab === 'Store' && (
-          <StoreView initialSubTab={initialStoreSubTab} />
+          <StoreView
+            subTab={storeSubTab}
+            onSubTabChange={setStoreSubTab}
+            selectedStoreIds={effectiveStoreIds}
+            dateFilter={effectiveFilter}
+          />
         )}
 
         {state === 'ready' && tab === 'Product' && (
