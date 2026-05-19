@@ -274,35 +274,6 @@ function App() {
   const savedViewsEnabled = useExperiment('saved-views')
   const restoreLastViewEnabled = useExperiment('restore-last-view')
 
-  // Saved views state — reactive store backed by localStorage. Multiple
-  // surfaces (ContextBar star, both pickers) read this list and write to
-  // it, so a flag flip or save action propagates instantly.
-  const {
-    views: savedViews,
-    saveView: _saveView, // shadowed by handler below
-    deleteView,
-    setDefaultView,
-  } = useSavedViews()
-  void _saveView // hooked via module-level saveView() to avoid stale closure
-  const matchingSavedView = savedViews.find((v) =>
-    viewMatches(v, selectedStoreIds, dateFilter),
-  )
-  const isCurrentSaved = Boolean(matchingSavedView)
-
-  const handleSaveCurrentView = () => {
-    if (!savedViewsEnabled) return
-    if (isCurrentSaved) return
-    const name = describeView(selectedStoreIds, dateFilter, storeNameById)
-    saveView(selectedStoreIds, dateFilter, name)
-  }
-
-  const applySavedView = (v: { storeIds: string[]; dateFilter: DateFilter }) => {
-    setSelectedStoreIds(new Set(v.storeIds))
-    setDateFilter(v.dateFilter)
-    closeStoresPicker()
-    closeDateFilter()
-  }
-
   // Persist current base route so restore-last-view can replay it on next
   // launch. Only restorable routes are written — auth/error states are
   // skipped intentionally so a previous crash doesn't trap the user.
@@ -363,6 +334,35 @@ function App() {
   // app would refresh on visibility change.
   const today = useMemo(() => new Date(), [])
   const dateLabel = formatPillLabel(dateFilter, today)
+
+  // Saved views state — reactive store backed by localStorage. Multiple
+  // surfaces (ContextBar star, both pickers) read this list and write to
+  // it, so a flag flip or save action propagates instantly. Positioned
+  // here so the matchingSavedView calculation can reference the filter
+  // state declared above.
+  const {
+    views: savedViews,
+    deleteView,
+    setDefaultView,
+  } = useSavedViews()
+  const matchingSavedView = savedViews.find((v) =>
+    viewMatches(v, selectedStoreIds, dateFilter),
+  )
+  const isCurrentSaved = Boolean(matchingSavedView)
+
+  const handleSaveCurrentView = () => {
+    if (!savedViewsEnabled) return
+    if (isCurrentSaved) return
+    const name = describeView(selectedStoreIds, dateFilter, storeNameById)
+    saveView(selectedStoreIds, dateFilter, name)
+  }
+
+  const applySavedView = (v: { storeIds: string[]; dateFilter: DateFilter }) => {
+    setSelectedStoreIds(new Set(v.storeIds))
+    setDateFilter(v.dateFilter)
+    setStoresPickerOpen(false)
+    setDateFilterOpen(false)
+  }
 
   useEffect(() => {
     if (baseRoute !== 'splash') return
