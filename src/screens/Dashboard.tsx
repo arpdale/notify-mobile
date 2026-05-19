@@ -52,6 +52,11 @@ type Props = {
   /** Overrides for the context bar selector labels */
   storeLabel?: string
   dateLabel?: string
+  /** When set, the ContextBar shows a star action that calls this on tap.
+   *  `currentViewSaved` flips the icon to filled. App.tsx wires these only
+   *  when the saved-views experiment is on. */
+  onSaveView?: () => void
+  currentViewSaved?: boolean
   /** Live inputs driving tile data — Sales/Labor views recompute when any
    *  of these change. Optional so the error state can mount without them. */
   selectedStoreIds?: Set<string>
@@ -75,6 +80,8 @@ export function Dashboard({
   onPickDate,
   storeLabel = 'StoreName',
   dateLabel = '01/06/26',
+  onSaveView,
+  currentViewSaved = false,
   selectedStoreIds,
   dateFilter,
   today,
@@ -110,6 +117,8 @@ export function Dashboard({
         dateLabel={dateLabel}
         onStoreClick={onPickStores}
         onDateClick={onPickDate}
+        onSaveView={onSaveView}
+        saved={currentViewSaved}
       />
 
       <div
@@ -156,7 +165,11 @@ export function Dashboard({
         )}
 
         {state === 'ready' && tab === 'Store' && (
-          <StoreView initialSubTab={initialStoreSubTab} />
+          <StoreView
+            initialSubTab={initialStoreSubTab}
+            selectedStoreIds={effectiveStoreIds}
+            dateFilter={effectiveFilter}
+          />
         )}
 
         {state === 'ready' && tab === 'Product' && (
