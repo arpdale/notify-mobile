@@ -11,8 +11,11 @@ type Props = {
 }
 
 export function SignIn({ onSignIn, onForgotPassword, onDevSkip }: Props) {
-  const [username, setUsername] = useState('myemail@gmail.com')
-  const [password, setPassword] = useState('demo')
+  const [username, setUsername] = useState('admin@qubeyond.com')
+  // Demo seed — never a real credential. Length + symbol + mixed case so the
+  // obscured dot count signals "this team practices password hygiene" rather
+  // than "the demo password is literally 'demo'."
+  const [password, setPassword] = useState('Lantern#7G4!')
 
   const canSubmit = username.trim().length > 0 && password.trim().length > 0
 
