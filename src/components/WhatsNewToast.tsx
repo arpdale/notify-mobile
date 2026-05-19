@@ -28,14 +28,26 @@ export function WhatsNewToast({
   onLearnMore,
   onDismiss,
 }: Props) {
-  // Two-phase mount so the spring-in runs on first paint.
+  // Two-phase mount so the slide-in runs on first paint. Double rAF is the
+  // reliable pattern: the first frame commits the off-screen initial state
+  // to the DOM, the second flips to the on-screen position so the CSS
+  // transition has a measurable starting point. Single rAF can collapse
+  // into a single commit under React 18 batching — the offscreen frame
+  // never paints and the toast just snaps in.
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
-    if (open) {
-      const t = requestAnimationFrame(() => setMounted(true))
-      return () => cancelAnimationFrame(t)
+    if (!open) {
+      setMounted(false)
+      return
     }
-    setMounted(false)
+    let inner: number | undefined
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setMounted(true))
+    })
+    return () => {
+      cancelAnimationFrame(outer)
+      if (inner !== undefined) cancelAnimationFrame(inner)
+    }
   }, [open])
 
   const [dragY, setDragY] = useState(0)
@@ -114,7 +126,7 @@ export function WhatsNewToast({
         transform: mounted ? `translateY(${lift}px)` : 'translateY(-100%)',
         transition: dragging
           ? 'none'
-          : `transform 320ms ${SPRING}, height 320ms ${SPRING}`,
+          : `transform 460ms ${SPRING}, height 320ms ${SPRING}`,
         cursor: dragging ? 'grabbing' : 'grab',
       }}
     >

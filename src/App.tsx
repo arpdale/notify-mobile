@@ -676,11 +676,14 @@ function App() {
           onMenu={() => setMenuOpen(true)}
           experimentActions={{
             'whats-new': {
-              label: 'Reset What\'s New (re-fire toast)',
+              label: "Reset What's New (re-arms toast for next dashboard visit)",
               onClick: () => {
+                // Rearm state but stay put. The toast is gated to
+                // baseRoute === 'dashboard' anyway, so it will fire the
+                // next time the user navigates back to Dashboard — no
+                // jarring auto-jump while the user is mid-task here.
                 resetForDemo()
                 setWhatsNewToastDismissed(false)
-                goto('dashboard')
               },
             },
           }}
