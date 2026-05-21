@@ -145,7 +145,7 @@ export function FilterByDate({ filter, onChange, today, onDismiss, savedViewsSlo
             style={{
               width: '100%',
               padding: '12px 16px',
-              border: '1.5px solid #339FB8',
+              border: '1.5px solid var(--color-interactive-secondary,#339FB8)',
               borderRadius: 9999,
               fontFamily: "'Inter', sans-serif",
               fontSize: 16,
