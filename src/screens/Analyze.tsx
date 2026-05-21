@@ -6,7 +6,7 @@ type Message =
   | { kind: 'user'; text: string; time?: string }
   | { kind: 'date'; label: string }
 
-const USER_BUBBLE_BG = '#4A8FE7'
+const USER_BUBBLE_BG = 'var(--color-info,#4A8FE7)'
 const BOT_BUBBLE_BG = '#FFFFFF'
 
 const INITIAL: Message[] = [
