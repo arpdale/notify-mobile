@@ -118,7 +118,7 @@ function RightLink({ children }: { children: React.ReactNode }) {
         fontFamily: "'Inter', sans-serif",
         fontSize: 14,
         fontWeight: 500,
-        color: '#339FB8',
+        color: 'var(--color-interactive-secondary,#339FB8)',
       }}
     >
       {children}
@@ -198,7 +198,7 @@ function NetworkView({ rows, onRowClick }: ViewProps) {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: allOnline ? '#16A34A' : '#EF2149',
+                background: allOnline ? 'var(--color-success,#16A34A)' : 'var(--color-destructive,#EF2149)',
               }}
             />
             <span>{row.onlineFraction}</span>

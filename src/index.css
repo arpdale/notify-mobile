@@ -19,11 +19,14 @@ body,
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Point at DS tokens so theme + fidelity flips reach the canvas. --font-primary
+     and --color-bg-app are the real token names (the old --color-surface-app was
+     undefined and silently fell back). */
+  font-family: var(--font-primary, 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   font-size: 16px;
   line-height: 1.4;
   color: var(--color-text-primary, #000);
-  background: var(--color-surface-app, #f4f4f4);
+  background: var(--color-bg-app, #f4f4f4);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -36,6 +39,14 @@ button {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Wireframe: desaturate <img> assets (logo SVGs, imagery) that can't read CSS
+   vars because an <img> is an isolated document. Inline SVG (QuMark/NotifyLockup,
+   icons, charts) already flips via tokens, so this only catches the raster/img
+   path. */
+[data-fidelity='wireframe'] img {
+  filter: grayscale(1);
 }
 
 /* BottomSheet enter/exit animations. Keyframes (not CSS transitions) so

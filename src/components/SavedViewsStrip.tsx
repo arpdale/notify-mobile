@@ -94,7 +94,7 @@ export function SavedViewsStrip({
                   background: 'transparent',
                   padding: 8,
                   cursor: 'pointer',
-                  color: view.isDefault ? '#40CCF2' : '#9CA3AF',
+                  color: view.isDefault ? 'var(--color-accent,#40CCF2)' : '#9CA3AF',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',

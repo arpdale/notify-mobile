@@ -57,7 +57,7 @@ export function ThanksgivingFeast({ onBack }: Props) {
                   background: 'transparent',
                   padding: 0,
                   cursor: 'pointer',
-                  color: '#339FB8',
+                  color: 'var(--color-interactive-secondary,#339FB8)',
                   fontWeight: 500,
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -107,10 +107,10 @@ function PriceCard({ row }: { row: PriceRow }) {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={{ fontSize: 14, color: '#EF2149', fontWeight: 500 }}>
+        <span style={{ fontSize: 14, color: 'var(--color-destructive,#EF2149)', fontWeight: 500 }}>
           Claimed
         </span>
-        <span style={{ fontSize: 22, fontWeight: 600, color: '#EF2149' }}>
+        <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--color-destructive,#EF2149)' }}>
           {row.claimed.toLocaleString()}
         </span>
       </div>

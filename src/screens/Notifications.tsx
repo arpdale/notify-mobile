@@ -44,7 +44,7 @@ export function Notifications({ open, onDismiss }: Props) {
             background: 'transparent',
             padding: 0,
             cursor: 'pointer',
-            color: '#339FB8',
+            color: 'var(--color-interactive-secondary,#339FB8)',
             fontFamily: "'Inter', sans-serif",
             fontSize: 14,
             fontWeight: 500,

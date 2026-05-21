@@ -52,7 +52,7 @@ export function EnableFaceId({ open, onEnable, onSkip }: Props) {
           background: 'transparent',
           padding: 0,
           cursor: 'pointer',
-          color: '#40CCF2',
+          color: 'var(--color-accent,#40CCF2)',
           fontFamily: "'Inter', sans-serif",
           fontSize: 16,
           fontWeight: 500,

@@ -22,7 +22,7 @@ export function EmptyState({ icon, title, description, action }: Props) {
         textAlign: 'center',
       }}
     >
-      <div style={{ color: '#40CCF2', display: 'inline-flex' }}>{icon}</div>
+      <div style={{ color: 'var(--color-accent,#40CCF2)', display: 'inline-flex' }}>{icon}</div>
       <div
         style={{
           fontFamily: "'Inter', sans-serif",

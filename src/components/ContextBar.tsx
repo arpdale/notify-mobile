@@ -63,7 +63,7 @@ export function ContextBar({
             background: 'transparent',
             padding: 8,
             cursor: saved ? 'default' : 'pointer',
-            color: saved ? '#40CCF2' : '#6B7280',
+            color: saved ? 'var(--color-accent,#40CCF2)' : '#6B7280',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',

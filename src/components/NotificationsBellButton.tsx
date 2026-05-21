@@ -34,7 +34,7 @@ export function NotificationsBellButton({ onClick, hasUnread = false }: Props) {
             width: 7,
             height: 7,
             borderRadius: '50%',
-            background: '#EF2149',
+            background: 'var(--color-destructive,#EF2149)',
           }}
         />
       ) : null}
