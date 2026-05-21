@@ -129,20 +129,20 @@ export function CodeInput({
               borderRadius: 12,
               border: `1.5px solid ${
                 error
-                  ? '#EF2149'
+                  ? 'var(--color-destructive,#EF2149)'
                   : isFilled
                   ? '#000000'
-                  : '#339FB8'
+                  : 'var(--color-interactive-secondary,#339FB8)'
               }`,
               outline: 'none',
               padding: 0,
             }}
             onFocus={(e) => {
-              if (!error) e.currentTarget.style.borderColor = '#40CCF2'
+              if (!error) e.currentTarget.style.borderColor = 'var(--color-accent,#40CCF2)'
             }}
             onBlur={(e) => {
               if (!error)
-                e.currentTarget.style.borderColor = isFilled ? '#000000' : '#339FB8'
+                e.currentTarget.style.borderColor = isFilled ? '#000000' : 'var(--color-interactive-secondary,#339FB8)'
             }}
           />
         )

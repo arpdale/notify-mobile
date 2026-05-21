@@ -23,8 +23,8 @@ const ASSET = {
   lemonSlice: '/splash/lemon-slice.svg',
 } as const
 
-const CARD_RED = '#EF2149'
-const CARD_CYAN = '#40CCF2'
+const CARD_RED = 'var(--color-destructive,#EF2149)'
+const CARD_CYAN = 'var(--color-accent,#40CCF2)'
 
 export function Splash({
   version = 'Version 3.6.222-build. 1483',

@@ -86,7 +86,7 @@ export function SignIn({ onSignIn, onForgotPassword, onDevSkip }: Props) {
         style={{
           alignSelf: 'flex-end',
           marginTop: 12,
-          color: '#339FB8',
+          color: 'var(--color-interactive-secondary,#339FB8)',
           fontFamily: "'Red Hat Text', 'Inter', sans-serif",
           fontSize: 14,
           fontWeight: 500,

@@ -76,7 +76,7 @@ export function CheckSearch({ onDashboard, onInventory, onMenu, onFilters }: Pro
                 background: 'transparent',
                 padding: 0,
                 cursor: 'pointer',
-                color: '#339FB8',
+                color: 'var(--color-interactive-secondary,#339FB8)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
@@ -114,7 +114,7 @@ export function CheckSearch({ onDashboard, onInventory, onMenu, onFilters }: Pro
                 background: 'transparent',
                 padding: 4,
                 cursor: 'pointer',
-                color: '#339FB8',
+                color: 'var(--color-interactive-secondary,#339FB8)',
               }}
             >
               <ShareIcon size={18} />
@@ -169,7 +169,7 @@ function CheckCard({ check }: { check: Check }) {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            color: '#339FB8',
+            color: 'var(--color-interactive-secondary,#339FB8)',
             fontWeight: 600,
             fontSize: 18,
           }}

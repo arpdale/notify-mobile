@@ -82,7 +82,7 @@ export function ChooseNewPassword({
               color: '#000',
             }}
           >
-            Code<span style={{ color: '#EF2149' }}>*</span>
+            Code<span style={{ color: 'var(--color-destructive,#EF2149)' }}>*</span>
           </label>
           <CodeInput
             value={code}

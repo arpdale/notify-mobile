@@ -12,8 +12,8 @@ type Props = {
 }
 
 const VARIANT_BG: Record<NonNullable<Props['variant']>, string> = {
-  error: '#EF2149',
-  success: '#16A34A',
+  error: 'var(--color-destructive,#EF2149)',
+  success: 'var(--color-success,#16A34A)',
 }
 
 export function Toast({ message, variant = 'error', position = 'floating' }: Props) {

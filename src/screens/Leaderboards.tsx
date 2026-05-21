@@ -244,7 +244,7 @@ function buildCompareColumns(): DataTableColumn<LeaderboardRow>[] {
 function PctDelta({ value, prior }: { value: number; prior: number | null }) {
   const pct = trendPct(value, prior)
   if (pct === null) return <span style={{ color: '#9CA3AF' }}>—</span>
-  const color = pct > 0 ? '#16A34A' : pct < 0 ? '#DC2626' : '#6B7280'
+  const color = pct > 0 ? 'var(--color-success,#16A34A)' : pct < 0 ? 'var(--color-destructive,#DC2626)' : '#6B7280'
   return (
     <span style={{ color, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
       {fmtPct(pct)}
@@ -264,7 +264,7 @@ function RankDelta({ delta }: { delta: number | null }) {
     )
   }
   const up = delta > 0
-  const color = up ? '#16A34A' : '#DC2626'
+  const color = up ? 'var(--color-success,#16A34A)' : 'var(--color-destructive,#DC2626)'
   return (
     <span style={{ color, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
       {up ? <ArrowUp size={14} /> : <ArrowDown size={14} />}

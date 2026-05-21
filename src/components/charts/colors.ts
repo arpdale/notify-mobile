@@ -7,9 +7,9 @@
  * - Tertiary slice: cool gray for the long tail
  */
 export const CHART_COLORS = {
-  today: '#40CCF2',
+  today: 'var(--color-accent,#40CCF2)',
   previous: '#6B7280',
-  primarySlice: '#40CCF2',
+  primarySlice: 'var(--color-accent,#40CCF2)',
   secondarySlice: '#5B6975',
   tertiarySlice: '#D9D9D9',
   axis: '#9CA3AF',
